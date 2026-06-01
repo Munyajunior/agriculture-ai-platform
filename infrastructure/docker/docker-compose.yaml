@@ -1,0 +1,282 @@
+# infrastructure/docker/docker-compose.yml
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: agri_postgres
+    environment:
+      POSTGRES_DB: agriculture_ai
+      POSTGRES_USER: agri_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - agri_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agri_user -d agriculture_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: agri_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_pass}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - agri_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO for object storage (development)
+  minio:
+    image: minio/minio:latest
+    container_name: agri_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - agri_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.api-gateway
+    container_name: agri_api_gateway
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
+      - DEBUG=${DEBUG:-false}
+      - DATABASE_URL=postgresql://agri_user:${DB_PASSWORD:-secure_password}@postgres:5432/agriculture_ai
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_pass}@redis:6379/0
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - AI_SERVICE_URL=http://ai-service:8002
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8003
+      - MEDIA_SERVICE_URL=http://media-service:8004
+      - MODEL_REGISTRY_URL=http://model-registry:8005
+      - SYNC_SERVICE_URL=http://sync-service:8006
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.auth-service
+    container_name: agri_auth_service
+    environment:
+      - DATABASE_URL=postgresql://agri_user:${DB_PASSWORD:-secure_password}@postgres:5432/agriculture_ai
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_pass}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # AI Service
+  ai-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.ai-service
+    container_name: agri_ai_service
+    environment:
+      - DATABASE_URL=postgresql://agri_user:${DB_PASSWORD:-secure_password}@postgres:5432/agriculture_ai
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_pass}@redis:6379/0
+      - MODEL_PATH=/models/mobilenetv3_best.pth
+      - USE_GPU=${USE_GPU:-false}
+    volumes:
+      - model_cache:/models
+    ports:
+      - "8002:8002"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.analytics-service
+    container_name: agri_analytics_service
+    environment:
+      - DATABASE_URL=postgresql://agri_user:${DB_PASSWORD:-secure_password}@postgres:5432/agriculture_ai
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_pass}@redis:6379/0
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Media Service
+  media-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.media-service
+    container_name: agri_media_service
+    environment:
+      - DATABASE_URL=postgresql://agri_user:${DB_PASSWORD:-secure_password}@postgres:5432/agriculture_ai
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "8004:8004"
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Model Registry
+  model-registry:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.model-registry
+    container_name: agri_model_registry
+    environment:
+      - DATABASE_URL=postgresql://agri_user:${DB_PASSWORD:-secure_password}@postgres:5432/agriculture_ai
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - model_registry:/models
+    ports:
+      - "8005:8005"
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Sync Service
+  sync-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile.sync-service
+    container_name: agri_sync_service
+    environment:
+      - DATABASE_URL=postgresql://agri_user:${DB_PASSWORD:-secure_password}@postgres:5432/agriculture_ai
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_pass}@redis:6379/0
+    ports:
+      - "8006:8006"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: agri_nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api-gateway
+      - auth-service
+      - ai-service
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agri_prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: agri_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - agri_network
+    restart: unless-stopped
+
+networks:
+  agri_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  model_cache:
+  model_registry:
+  prometheus_data:
+  grafana_data:

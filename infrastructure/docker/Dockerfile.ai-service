@@ -1,0 +1,62 @@
+# infrastructure/docker/Dockerfile.ai-service
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install system dependencies for OpenCV
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# Copy dependency files
+COPY services/ai-service/pyproject.toml services/ai-service/
+COPY shared/types/pyproject.toml shared/types/
+
+# Install dependencies
+RUN cd services/ai-service && uv pip install --system -e .
+
+# Final stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY services/ai-service /app/services/ai-service
+COPY shared /app/shared
+
+WORKDIR /app/services/ai-service
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Download pre-trained model (optional)
+RUN mkdir -p /app/models
+
+EXPOSE 8002
+
+CMD ["python", "main.py"]
