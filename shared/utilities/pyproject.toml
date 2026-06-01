@@ -1,0 +1,15 @@
+[project]
+name = "agriculture-utilities"
+version = "0.1.0"
+description = "Shared utilities for agriculture AI platform"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pillow>=12.2.0",
+    "python-magic>=0.4.27",
+    "pytz>=2026.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
