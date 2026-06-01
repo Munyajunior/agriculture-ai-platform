@@ -1,0 +1,26 @@
+[project]
+name = "analytics-service"
+version = "0.1.0"
+description = "Analytics Service for Agriculture AI Platform"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "fastapi>=0.136.3",
+    "numpy>=2.4.6",
+    "pandas>=3.0.3",
+    "prometheus-fastapi-instrumentator>=8.0.0",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.1",
+    "redis>=8.0.0",
+    "sqlalchemy>=2.0.50",
+    "uvicorn[standard]>=0.48.0",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+agriculture-ai-shared = { path = "../../shared/types" }
