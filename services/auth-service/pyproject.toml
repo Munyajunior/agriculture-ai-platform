@@ -1,0 +1,28 @@
+[project]
+name = "auth-service"
+version = "0.1.0"
+description = "Authentication Service for Agriculture AI Platform"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "email-validator>=2.3.0",
+    "fastapi>=0.136.3",
+    "passlib[argon2]>=1.7.4",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.1",
+    "python-dotenv>=1.2.2",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.30",
+    "redis>=8.0.0",
+    "sqlalchemy>=2.0.50",
+    "uvicorn[standard]>=0.48.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+agriculture-ai-shared = { path = "../../shared/types" }
