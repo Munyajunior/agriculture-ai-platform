@@ -1,0 +1,23 @@
+[project]
+name = "api-gateway"
+version = "0.1.0"
+description = "API Gateway for Agriculture AI Platform"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.136.3",
+    "httpx>=0.28.1",
+    "passlib[argon2]>=1.7.4",
+    "prometheus-fastapi-instrumentator>=8.0.0",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.30",
+    "slowapi>=0.1.9",
+    "uvicorn[standard]>=0.48.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+api-gateway = "main:start"
