@@ -57,6 +57,10 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class LogoutRequest(BaseModel):
+    """Schema for logout"""
+    access_token: str
+    refresh_token: Optional[str] = None
 
 class TokenResponse(BaseModel):
     """Token response schema"""
@@ -102,6 +106,78 @@ class ResetPasswordRequest(BaseModel):
 class VerifyEmailRequest(BaseModel):
     """Verify email request"""
     token: str
+
+class ResendVerificationRequest(BaseModel):
+    """Schema for resend verification email"""
+    email: EmailStr
+
+# Two-factor authentication schemas
+class TwoFactorSetupResponse(BaseModel):
+    """Schema for 2FA setup response"""
+    secret: str
+    qr_code_url: str
+    backup_codes: List[str]
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    """Schema for 2FA verification"""
+    code: str
+
+
+class TwoFactorDisableRequest(BaseModel):
+    """Schema for 2FA disable"""
+    password: str
+
+
+# API Key schemas
+class APIKeyCreate(BaseModel):
+    """Schema for API key creation"""
+    name: str = Field(..., min_length=1, max_length=100)
+    expires_in_days: Optional[int] = Field(None, ge=1, le=365)
+    permissions: List[str] = Field(default=[])
+
+
+class APIKeyResponse(BaseModel):
+    """Schema for API key response"""
+    id: UUID
+    name: str
+    key: Optional[str] = None  # Only returned once during creation
+    last_used_at: Optional[datetime]
+    expires_at: Optional[datetime]
+    is_active: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Session schemas
+class SessionResponse(BaseModel):
+    """Schema for session response"""
+    id: UUID
+    ip_address: Optional[str]
+    device_info: Dict[str, Any]
+    last_activity: datetime
+    created_at: datetime
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
+
+# OAuth schemas
+class OAuthAuthorizeRequest(BaseModel):
+    """Schema for OAuth authorization"""
+    provider: str
+    redirect_uri: str
+    code: Optional[str] = None
+
+
+class OAuthAccountResponse(BaseModel):
+    """Schema for OAuth account response"""
+    provider: str
+    provider_user_id: str
+    created_at: datetime
 
 
 class UpdateProfileRequest(BaseModel):

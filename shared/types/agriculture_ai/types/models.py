@@ -38,11 +38,24 @@ class User(Base):
     profile_picture_url = Column(String(500))
     preferences = Column(JSON, default={})
     last_login_ip = Column(String(45))
+    password_changed_at = Column(DateTime, default=datetime.utcnow)
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     last_login = Column(DateTime)
+
+    # 2FA fields
+    two_factor_enabled = Column(Boolean, default=False)
+    two_factor_secret = Column(String(255), nullable=True)
+    backup_codes = Column(JSON, default=list)
+    
+    # API keys
+    api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
+    
+    # OAuth accounts
+    oauth_accounts = relationship("OAuthAccount", back_populates="user", cascade="all, delete-orphan")
+    
     
     # Relationships
     farms = relationship("Farm", back_populates="owner")
