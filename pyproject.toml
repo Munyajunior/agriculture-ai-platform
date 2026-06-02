@@ -1,0 +1,18 @@
+[project]
+name = "agriculture-ai-platform"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "shared/types",
+    "services/api-gateway",
+    "services/ai-service",
+    "services/auth-service",
+    "services/analytics-service",
+    "shared/inference-sdk",
+    "shared/utilities",
+]
