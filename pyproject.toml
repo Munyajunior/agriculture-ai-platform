@@ -15,4 +15,7 @@ members = [
     "services/analytics-service",
     "shared/inference-sdk",
     "shared/utilities",
+    "services/media-service",
+    "services/model-registry",
+    "services/sync-service",
 ]

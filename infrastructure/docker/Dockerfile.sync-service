@@ -1,0 +1,39 @@
+# infrastructure/docker/Dockerfile.sync-service
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install uv
+
+COPY services/sync-service/pyproject.toml services/sync-service/
+COPY shared/types/pyproject.toml shared/types/
+
+RUN cd services/sync-service && uv pip install --system -e .
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY services/sync-service /app/services/sync-service
+COPY shared /app/shared
+
+WORKDIR /app/services/sync-service
+
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8006
+
+CMD ["python", "main.py"]

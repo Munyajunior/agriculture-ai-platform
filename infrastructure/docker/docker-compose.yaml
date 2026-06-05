@@ -169,11 +169,18 @@ services:
     ports:
       - "8004:8004"
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - agri_network
     restart: unless-stopped
+
+  # volumes:
+  #   media_storage:
 
   # Model Registry
   model-registry:
