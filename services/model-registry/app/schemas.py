@@ -11,7 +11,7 @@ from .database import ModelStatus, ModelFramework
 
 class ModelCreate(BaseModel):
     """Model creation schema"""
-    version: str = Field(..., regex=r'^\d+\.\d+\.\d+$')
+    version: str = Field(..., pattern=r'^\d+\.\d+\.\d+$')
     model_type: str = Field(..., description="mobilenetv3, resnet50, efficientnet, yolov8")
     framework: ModelFramework
     num_classes: Optional[int] = Field(default=15)
@@ -95,7 +95,7 @@ class ModelCompareResponse(BaseModel):
 
 class DeploymentCreate(BaseModel):
     """Deployment creation schema"""
-    environment: str = Field(..., regex='^(development|staging|production)$')
+    environment: str = Field(..., pattern='^(development|staging|production)$')
     deployed_by: str
     metadata: Optional[Dict[str, Any]] = Field(default={})
 

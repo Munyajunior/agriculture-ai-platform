@@ -8,7 +8,7 @@ from uuid import UUID
 from ...core.registry import ModelRegistry
 from ...database import ModelDeployment, ModelVersion, ModelStatus
 from ...schemas import DeploymentCreate, DeploymentResponse
-from ..dependencies import verify_api_key
+from .dependencies import verify_api_key
 
 router = APIRouter()
 registry = ModelRegistry()

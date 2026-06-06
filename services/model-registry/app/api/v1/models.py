@@ -13,7 +13,7 @@ from ...schemas import (
     ModelCreate, ModelResponse, ModelUpdate,
     ModelListResponse, ModelCompareResponse
 )
-from ..dependencies import verify_api_key
+from .dependencies import verify_api_key
 
 router = APIRouter()
 registry = ModelRegistry()

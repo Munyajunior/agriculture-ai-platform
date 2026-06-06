@@ -93,7 +93,7 @@ class ModelVersion(Base):
     deployed_at = Column(DateTime)
     
     # Additional metadata
-    metadata = Column(JSON, default=dict)
+    metadata_ = Column("metadata", JSON, default=dict)
     created_by = Column(String(100))
     
     # Relationships
@@ -120,7 +120,7 @@ class ModelDeployment(Base):
     deployed_at = Column(DateTime, default=datetime.utcnow)
     status = Column(String(50))  # success, failed, rolling_back
     rollback_from = Column(PGUUID(as_uuid=True))
-    metadata = Column(JSON, default=dict)
+    metadata_ = Column("metadata", JSON, default=dict)
     
     # Relationships
     model = relationship("ModelVersion", back_populates="deployments")

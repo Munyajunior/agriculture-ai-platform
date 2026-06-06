@@ -3,7 +3,7 @@
 
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -63,10 +63,11 @@ class Settings(BaseSettings):
     
     # Security
     API_KEY: str = Field(default="change-me-in-production")
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
+    @field_validator("DEBUG", mode="before")
+    def parse_debug(cls, v) -> bool:
+        if isinstance(v, str):
+            return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
+        return bool(v)
 
 settings = Settings()
