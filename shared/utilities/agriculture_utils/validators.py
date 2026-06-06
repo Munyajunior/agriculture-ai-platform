@@ -5,8 +5,14 @@ import re
 from typing import Optional, Tuple, List, Dict, Any, Union
 from pathlib import Path
 import imghdr
-import magic
 from PIL import Image
+
+try:
+    import magic as _magic
+    _MAGIC_AVAILABLE = True
+except ImportError:
+    _magic = None  # type: ignore[assignment]
+    _MAGIC_AVAILABLE = False
 
 
 def validate_image(
@@ -60,9 +66,15 @@ def validate_image(
                 return False, f"Image too large: {size_mb:.1f}MB"
             
             # Check format using magic bytes
-            mime = magic.from_buffer(image_data[:1024], mime=True)
-            if not any(fmt in mime for fmt in allowed_formats):
-                return False, f"Unsupported format: {mime}"
+            if _MAGIC_AVAILABLE:
+                mime = _magic.from_buffer(image_data[:1024], mime=True)
+                if not any(fmt in mime for fmt in allowed_formats):
+                    return False, f"Unsupported format: {mime}"
+            else:
+                # Fallback: check using imghdr on a BytesIO object
+                fmt = imghdr.what(None, h=image_data[:32])
+                if fmt not in allowed_formats:
+                    return False, f"Unsupported format: {fmt}"
         
         return True, None
         

@@ -5,7 +5,7 @@ import asyncio
 from typing import Dict, Any, Optional, Tuple, List
 from enum import Enum
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class HybridInference:
                 "inference_time_ms": inference_time,
                 "source": "edge",
                 "confidence": float(max(probabilities)),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         except Exception as e:
             logger.error(f"Edge inference failed: {e}")
@@ -173,7 +173,7 @@ class HybridInference:
         self.pending_offline_predictions.append({
             "image": image,
             "result": result,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
     
     async def sync_offline_predictions(self, api_key: str) -> List[Dict[str, Any]]:
@@ -187,15 +187,19 @@ class HybridInference:
                 synced.append({
                     "offline_result": item["result"],
                     "cloud_result": cloud_result,
-                    "synced_at": datetime.utcnow().isoformat()
+                    "synced_at": datetime.now(timezone.utc).isoformat()
                 })
             except Exception as e:
                 logger.error(f"Failed to sync offline prediction: {e}")
         
-        # Clear synced items
+        # Clear synced items — compare by result identity (timestamp + prediction)
+        synced_results = {
+            (s["offline_result"].get("timestamp"), s["offline_result"].get("prediction"))
+            for s in synced
+        }
         self.pending_offline_predictions = [
             item for item in self.pending_offline_predictions
-            if item not in [s["offline_result"] for s in synced]
+            if (item["result"].get("timestamp"), item["result"].get("prediction")) not in synced_results
         ]
         
         return synced

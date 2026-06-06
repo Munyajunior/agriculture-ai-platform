@@ -13,8 +13,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 
-from .enums import (CropType, DiseaseType, DeviceType, SyncLogStatus, SyncStatus, PredictionStatus, UserRole,InferenceSource,
-TreatmentType,TelemetryType, ModelType, SyncLogType, SyncLogStatus)
+from .enums import (
+    CropType, DiseaseType, DeviceType, SyncLogStatus, SyncStatus,
+    PredictionStatus, UserRole, InferenceSource,
+    TreatmentType, TelemetryType, ModelType, SyncLogType,
+)
 
 Base = declarative_base()
 
@@ -38,7 +41,7 @@ class User(Base):
     profile_picture_url = Column(String(500))
     preferences = Column(JSON, default={})
     last_login_ip = Column(String(45))
-    password_changed_at = Column(DateTime, default=datetime.utcnow)
+    password_changed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
@@ -147,7 +150,7 @@ class Prediction(Base):
     is_verified = Column(Boolean, default=False)
     verified_by = Column(PGUUID(as_uuid=True), ForeignKey("users.id"))
     verified_at = Column(DateTime)
-    status = Column(Enum(PredictionStatus, name="prediction_statuses"), default="pending")
+    status = Column(Enum(PredictionStatus, name="prediction_statuses"), default=PredictionStatus.PENDING)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     # Relationships
@@ -300,7 +303,7 @@ class ModelVersion(Base):
     is_deployed = Column(Boolean, default=False)
     deployment_date = Column(DateTime)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    metadata = Column(JSON, default=dict)
+    metadata_ = Column("metadata", JSON, default=dict)
     
     __table_args__ = (
         Index("idx_models_active", "is_active"),

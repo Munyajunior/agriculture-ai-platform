@@ -2,8 +2,9 @@
 """Postprocessing utilities for inference results"""
 
 import json
+from collections import Counter
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime
 import numpy as np
 
 
@@ -71,7 +72,7 @@ class ResultProcessor:
             "metadata": {
                 "inference_source": source,
                 "inference_time_ms": inference_time_ms,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "model_version": disease_info.get("model_version", "unknown")
             },
             "recommendations": self._generate_recommendations(
@@ -274,8 +275,6 @@ class ResultProcessor:
     
     def _majority_vote_aggregation(self, predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Aggregate predictions by majority vote"""
-        
-        from collections import Counter
         
         # Count class predictions
         class_votes = Counter()

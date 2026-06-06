@@ -49,18 +49,16 @@ def decode_image(base64_string: str) -> Image.Image:
     return Image.open(io.BytesIO(image_bytes))
 
 
-def validate_image(image: Image.Image) -> bool:
-    """Validate image for processing"""
-    
-    # Check minimum dimensions
+def check_image_dimensions(image: Image.Image) -> bool:
+    """Check that image meets minimum dimension and aspect-ratio requirements for processing."""
+
     if image.width < 100 or image.height < 100:
         return False
-    
-    # Check aspect ratio (not too extreme)
+
     aspect_ratio = image.width / image.height
     if aspect_ratio < 0.25 or aspect_ratio > 4:
         return False
-    
+
     return True
 
 

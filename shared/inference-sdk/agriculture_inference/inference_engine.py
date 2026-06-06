@@ -124,12 +124,8 @@ class InferenceEngine:
         return results
     
     async def predict_async(self, input_tensor: np.ndarray):
-        """Async prediction using thread pool"""
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            self.executor,
-            lambda: asyncio.run(self.predict(input_tensor))
-        )
+        """Async prediction — delegates to predict() directly."""
+        return await self.predict(input_tensor)
     
     def unload(self):
         """Unload model and free resources"""
