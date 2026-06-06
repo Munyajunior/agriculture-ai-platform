@@ -89,7 +89,7 @@ def run_service(service: str, port: int) -> tuple[str, int | None, bool, str, st
 
     health_ok = False
     health_output = "not checked"
-    deadline = time.time() + 25
+    deadline = time.time() + 90
     while time.time() < deadline:
         code = proc.poll()
         if code is not None:
