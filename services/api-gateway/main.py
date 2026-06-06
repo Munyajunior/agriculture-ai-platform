@@ -26,17 +26,6 @@ logger = logging.getLogger(__name__)
 
 # Rate limiter setup
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(
-    title="Agriculture AI Platform API Gateway",
-    description="Hybrid AI-Powered Plant Disease Detection Platform",
-    version="0.1.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
-)
-app.state.limiter = limiter
-app.add_exception_handler(429, _rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,7 +42,19 @@ async def lifespan(app: FastAPI):
     await redis_client.close()
     logger.info("Redis connection closed")
 
-app.lifespan = lifespan
+
+app = FastAPI(
+    title="Agriculture AI Platform API Gateway",
+    description="Hybrid AI-Powered Plant Disease Detection Platform",
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"
+)
+app.state.limiter = limiter
+app.add_exception_handler(429, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # CORS middleware
 app.add_middleware(

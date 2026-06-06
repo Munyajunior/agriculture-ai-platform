@@ -563,3 +563,6 @@ class MetricsService:
         """Get current processing rate (predictions per second)"""
         rates = await self._get_current_rates()
         return rates.get("predictions_per_second", 0)
+
+
+metrics_service = MetricsService()
