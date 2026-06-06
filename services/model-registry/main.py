@@ -2,6 +2,7 @@
 """Model Registry Service - Main Entry Point"""
 
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,7 +47,11 @@ async def lifespan(app: FastAPI):
     logger.info("Model registry initialized")
     
     # Load active model
-    active_model = await model_registry.get_active_model()
+    try:
+        active_model = await asyncio.wait_for(model_registry.get_active_model(), timeout=10)
+    except Exception as exc:
+        logger.warning("Active model lookup skipped: %s", exc)
+        active_model = None
     if active_model:
         await model_manager.load_model(active_model)
         logger.info(f"Active model loaded: {active_model.version}")

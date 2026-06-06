@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, List
 from uuid import UUID, uuid4
 from sqlalchemy import (
     Column, String, DateTime, Integer, Float, Boolean, 
-    JSON, ForeignKey, Table, Index, Text, Enum
+    JSON, ForeignKey, Table, Index, Text, Enum, text
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.ext.asyncio import (
@@ -15,8 +15,11 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import enum
+import logging
 
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 # Database engine
 engine = create_async_engine(
@@ -207,6 +210,48 @@ async def init_db():
     """Initialize database"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'modelframework') THEN
+                    CREATE TYPE modelframework AS ENUM ('PYTORCH', 'TENSORFLOW', 'ONNX', 'TENSORRT');
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'modelstatus') THEN
+                    CREATE TYPE modelstatus AS ENUM ('DRAFT', 'VALIDATING', 'VALIDATED', 'PRODUCTION', 'ARCHIVED', 'FAILED');
+                END IF;
+            END
+            $$;
+        """))
+        await conn.execute(text("""
+            ALTER TABLE model_versions
+            ADD COLUMN IF NOT EXISTS model_framework modelframework NOT NULL DEFAULT 'PYTORCH',
+            ADD COLUMN IF NOT EXISTS model_path varchar(500),
+            ADD COLUMN IF NOT EXISTS onnx_path varchar(500),
+            ADD COLUMN IF NOT EXISTS quantized_path varchar(500),
+            ADD COLUMN IF NOT EXISTS tensorrt_path varchar(500),
+            ADD COLUMN IF NOT EXISTS input_shape json,
+            ADD COLUMN IF NOT EXISTS output_shape json,
+            ADD COLUMN IF NOT EXISTS num_classes integer,
+            ADD COLUMN IF NOT EXISTS classes json,
+            ADD COLUMN IF NOT EXISTS accuracy double precision,
+            ADD COLUMN IF NOT EXISTS precision double precision,
+            ADD COLUMN IF NOT EXISTS recall double precision,
+            ADD COLUMN IF NOT EXISTS f1_score double precision,
+            ADD COLUMN IF NOT EXISTS model_size_mb double precision,
+            ADD COLUMN IF NOT EXISTS inference_time_ms double precision,
+            ADD COLUMN IF NOT EXISTS training_dataset varchar(200),
+            ADD COLUMN IF NOT EXISTS training_epochs integer,
+            ADD COLUMN IF NOT EXISTS training_batch_size integer,
+            ADD COLUMN IF NOT EXISTS training_config json,
+            ADD COLUMN IF NOT EXISTS status modelstatus DEFAULT 'DRAFT',
+            ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT false,
+            ADD COLUMN IF NOT EXISTS is_deployed boolean DEFAULT false,
+            ADD COLUMN IF NOT EXISTS created_at timestamp,
+            ADD COLUMN IF NOT EXISTS updated_at timestamp,
+            ADD COLUMN IF NOT EXISTS deployed_at timestamp,
+            ADD COLUMN IF NOT EXISTS metadata json,
+            ADD COLUMN IF NOT EXISTS created_by varchar(100)
+        """))
         logger.info("Database tables created")
 
 

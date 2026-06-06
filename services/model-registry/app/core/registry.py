@@ -27,7 +27,10 @@ class ModelRegistry:
     async def initialize(self):
         """Initialize registry"""
         await self.storage.initialize()
-        await self._load_cache()
+        try:
+            await asyncio.wait_for(self._load_cache(), timeout=10)
+        except Exception as exc:
+            logger.warning("Model registry cache load skipped: %s", exc)
         logger.info("Model registry initialized")
     
     async def _load_cache(self):

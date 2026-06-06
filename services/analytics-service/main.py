@@ -5,13 +5,14 @@
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import settings
 from app.api.v1 import api_router
-from app.core.database import init_db, close_db
+from app.core.database import init_db, close_db, check_db_connection
 from app.core.cache import redis_client
 from app.services.analytics_engine import AnalyticsEngine
 from app.scheduler import start_scheduler, stop_scheduler
@@ -86,7 +87,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "analytics-service",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 @app.get("/ready")

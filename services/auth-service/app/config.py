@@ -2,8 +2,8 @@
 """Configuration for Auth Service"""
 
 import http
-from typing import List, Optional
-from pydantic_settings import BaseSettings
+from typing import Annotated, List, Optional
+from pydantic_settings import BaseSettings, NoDecode
 from pydantic import Field, field_validator, SecretStr
 
 
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     
     
     # Database
-    DATABASE_URL: str = Field(default="postgresql://agri_user:password@localhost:5432/agriculture_ai")
+    DATABASE_URL: str = Field(default="postgresql://agri_user:secure_password@localhost:5432/agriculture_ai")
     DATABASE_POOL_SIZE: int = Field(default=20)
     DATABASE_MAX_OVERFLOW: int = Field(default=40)
     
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: Optional[str] = None
     
     # CORS
-    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
+    CORS_ORIGINS: Annotated[List[str], NoDecode] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
 
     @field_validator("DEBUG", mode="before")
     def parse_debug(cls, v) -> bool:
@@ -88,6 +88,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 settings = Settings()

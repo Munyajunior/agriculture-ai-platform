@@ -1,8 +1,8 @@
 # services/api-gateway/app/config.py
 """Configuration management for API Gateway"""
 
-from typing import List
-from pydantic_settings import BaseSettings
+from typing import Annotated, List
+from pydantic_settings import BaseSettings, NoDecode
 from pydantic import Field, field_validator
 
 
@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS
-    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
-    ALLOWED_HOSTS: List[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
+    CORS_ORIGINS: Annotated[List[str], NoDecode] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
+    ALLOWED_HOSTS: Annotated[List[str], NoDecode] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
 
     @field_validator("DEBUG", mode="before")
     def parse_debug(cls, v) -> bool:
@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 settings = Settings()

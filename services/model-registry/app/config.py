@@ -1,8 +1,8 @@
 # services/model-registry/app/config.py
 """Configuration management for Model Registry"""
 
-from typing import List, Optional
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Annotated, List, Optional
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from pydantic import Field, field_validator
 
 
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     PORT: int = 8005
     
     # Database
-    DATABASE_URL: str = Field(default="postgresql://user:pass@localhost:5432/agriculture_ai")
+    DATABASE_URL: str = Field(default="postgresql://agri_user:secure_password@localhost:5432/agriculture_ai")
     
     # Redis
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     MLFLOW_EXPERIMENT_NAME: str = Field(default="plant-disease-detection")
     
     # CORS
-    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000", "http://localhost:8080"])
+    CORS_ORIGINS: Annotated[List[str], NoDecode] = Field(default=["http://localhost:3000", "http://localhost:8080"])
     
     # Monitoring
     ENABLE_MODEL_MONITORING: bool = Field(default=True)
@@ -69,5 +69,11 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
         return bool(v)
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    def split_cors_origins(cls, v) -> List[str]:
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",")]
+        return v
 
 settings = Settings()

@@ -17,6 +17,18 @@ class ModelStorage:
     async def initialize(self) -> None:
         self.base_path.mkdir(parents=True, exist_ok=True)
 
+    async def close(self) -> None:
+        """Close storage resources."""
+        return None
+
+    async def health_check(self) -> bool:
+        """Check that model storage is writable."""
+        try:
+            self.base_path.mkdir(parents=True, exist_ok=True)
+            return self.base_path.exists() and self.base_path.is_dir()
+        except OSError:
+            return False
+
     async def upload_file(self, file_data: bytes, file_path: str) -> str:
         target = self.base_path / file_path
         target.parent.mkdir(parents=True, exist_ok=True)

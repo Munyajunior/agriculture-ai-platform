@@ -1,8 +1,8 @@
 # services/media-service/app/config.py
 """Configuration management for Media Service"""
 
-from typing import List, Optional
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Annotated, List, Optional
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from pydantic import Field, field_validator, validator
 
 
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     WORKERS: int = 4
     
     # Database
-    DATABASE_URL: str = Field(default="postgresql://user:pass@localhost:5432/agriculture_ai")
+    DATABASE_URL: str = Field(default="postgresql://agri_user:secure_password@localhost:5432/agriculture_ai")
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 40
     
@@ -67,8 +67,8 @@ class Settings(BaseSettings):
     SIGNING_SECRET: str = Field(default="change-me-in-production")
     
     # CORS
-    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000", "http://localhost:8080"])
-    ALLOWED_HOSTS: List[str] = Field(default=["localhost", "127.0.0.1"])
+    CORS_ORIGINS: Annotated[List[str], NoDecode] = Field(default=["http://localhost:3000", "http://localhost:8080"])
+    ALLOWED_HOSTS: Annotated[List[str], NoDecode] = Field(default=["localhost", "127.0.0.1"])
     
     # Rate limiting
     RATE_LIMIT_UPLOADS: int = Field(default=50)  # per minute
@@ -79,6 +79,18 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
         return bool(v)
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    def split_cors_origins(cls, v) -> List[str]:
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",")]
+        return v
+
+    @field_validator("ALLOWED_HOSTS", mode="before")
+    def split_allowed_hosts(cls, v) -> List[str]:
+        if isinstance(v, str):
+            return [host.strip() for host in v.split(",")]
+        return v
     
     @validator("STORAGE_TYPE")
     def validate_storage_type(cls, v):

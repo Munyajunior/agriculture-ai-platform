@@ -6,9 +6,9 @@ from typing import Optional, Dict, Any
 from uuid import UUID, uuid4
 from sqlalchemy import (
     Column, String, DateTime, Integer, Boolean, 
-    JSON, ForeignKey, Table, Index, Text
+    JSON, ForeignKey, Table, Index, Text, text
 )
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.ext.asyncio import (
     AsyncSession, create_async_engine, async_sessionmaker,
     AsyncAttrs
@@ -56,7 +56,7 @@ class MediaFile(Base):
     
     # Storage paths
     storage_path = Column(String(500), nullable=False)
-    thumbnail_paths = Column(JSON, default=dict)  # size -> path
+    thumbnail_paths = Column(JSONB, default=dict)  # size -> path
     public_url = Column(String(500))
     
     # Image metadata
@@ -64,7 +64,7 @@ class MediaFile(Base):
     height = Column(Integer)
     blurhash = Column(String(100))  # For progressive loading
     dominant_color = Column(String(7))  # Hex color
-    exif_data = Column(JSON, default=dict)
+    exif_data = Column(JSONB, default=dict)
     
     # Processing status
     is_processed = Column(Boolean, default=False)
@@ -72,8 +72,8 @@ class MediaFile(Base):
     processed_at = Column(DateTime, nullable=True)
     
     # Additional info
-    tags = Column(JSON, default=list)
-    metadata_ = Column("metadata", JSON, default=dict)
+    tags = Column(JSONB, default=list)
+    metadata_ = Column("metadata", JSONB, default=dict)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -102,7 +102,7 @@ class UploadSession(Base):
     total_size = Column(Integer, nullable=False)
     uploaded_size = Column(Integer, default=0)
     chunk_count = Column(Integer, default=0)
-    completed_chunks = Column(JSON, default=list)
+    completed_chunks = Column(JSONB, default=list)
     status = Column(String(20), default="in_progress")  # in_progress, completed, failed, expired
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -130,11 +130,11 @@ class ImageAnalysis(Base):
     # Content detection
     has_plant = Column(Boolean, default=False)
     plant_confidence = Column(Integer)  # 0-100
-    disease_regions = Column(JSON, default=list)  # List of bounding boxes
+    disease_regions = Column(JSONB, default=list)  # List of bounding boxes
     
     # Color analysis
-    dominant_colors = Column(JSON, default=list)  # List of hex colors with percentages
-    color_palette = Column(JSON, default=list)
+    dominant_colors = Column(JSONB, default=list)  # List of hex colors with percentages
+    color_palette = Column(JSONB, default=list)
     
     # Quality flags
     is_blurry = Column(Boolean, default=False)
@@ -156,17 +156,17 @@ async def init_db():
         # Create tables
         await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created")
-    
-    @classmethod
-    async def health_check(cls) -> bool:
-        """Check database connectivity"""
-        try:
-            async with AsyncSessionLocal() as session:
-                await session.execute("SELECT 1")
-            return True
-        except Exception as e:
-            logger.error(f"Database health check failed: {e}")
-            return False
+
+
+async def check_db_connection() -> bool:
+    """Check database connectivity."""
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+        return True
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return False
 
 
 async def get_db() -> AsyncSession:

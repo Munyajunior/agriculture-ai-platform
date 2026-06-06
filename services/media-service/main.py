@@ -13,7 +13,7 @@ from app.api.v1 import api_router
 from app.core.storage import StorageManager
 from app.core.image_processor import ImageProcessor
 from app.core.cache import CacheManager
-from app.database import init_db
+from app.database import init_db, check_db_connection
 from app.workers.thumbnail_worker import thumbnail_worker
 from app.middleware import RequestLoggingMiddleware
 
@@ -107,7 +107,7 @@ async def readiness_check():
     """Readiness check endpoint"""
     storage_ready = await storage_manager.health_check()
     cache_ready = await cache_manager.health_check()
-    database_ready = await init_db.health_check()
+    database_ready = await check_db_connection()
     
     return {
         "ready": storage_ready and cache_ready and database_ready,

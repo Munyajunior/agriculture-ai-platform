@@ -3,6 +3,7 @@
 
 from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -46,6 +47,18 @@ async def close_db() -> None:
     if _engine:
         await _engine.dispose()
         _engine = None
+
+
+async def check_db_connection() -> bool:
+    """Return whether the configured database can answer a simple query."""
+    try:
+        if not _engine:
+            await init_db()
+        async with _engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
 
 
 @asynccontextmanager

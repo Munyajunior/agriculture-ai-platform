@@ -3,6 +3,7 @@
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -35,8 +36,20 @@ async def lifespan(app: FastAPI):
     
     # Load default model
     await model_registry.initialize()
-    await inference_engine.load_model(model_registry.get_active_model())
-    logger.info("AI model loaded")
+    active_model = await model_registry.get_active_model_info()
+    model_path = Path(active_model.get("model_path", settings.MODEL_PATH))
+    use_onnx = bool(active_model.get("use_onnx", settings.USE_ONNX))
+
+    if use_onnx and not model_path.exists():
+        logger.warning("ONNX model file not found at %s; service started without a loaded model", model_path)
+    else:
+        await inference_engine.load_model(
+            model_path=model_path,
+            model_type=active_model.get("model_type", settings.MODEL_TYPE),
+            num_classes=active_model.get("num_classes", settings.NUM_CLASSES),
+            use_onnx=use_onnx,
+        )
+        logger.info("AI model loaded")
     
     yield
     

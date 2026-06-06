@@ -14,6 +14,8 @@ import logging
 
 from PIL import Image
 import aiofiles
+import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from .config import settings
@@ -29,6 +31,10 @@ class StorageManager:
         self.bucket = settings.STORAGE_BUCKET
         self.storage_type = settings.STORAGE_TYPE
         self.public_url = settings.STORAGE_PUBLIC_URL
+
+    async def _client_call(self, method: str, **kwargs):
+        """Run a synchronous boto3 call without blocking the event loop."""
+        return await asyncio.to_thread(getattr(self.client, method), **kwargs)
         
     async def initialize(self):
         """Initialize storage client"""
@@ -45,16 +51,6 @@ class StorageManager:
     
     async def _init_s3_client(self):
         """Initialize S3-compatible client"""
-        try:
-            import aiobotocore.session
-        except ImportError as exc:
-            raise RuntimeError(
-                "aiobotocore is required for minio/s3/r2 storage. "
-                "Use STORAGE_TYPE=local or install a compatible aiobotocore/botocore pair."
-            ) from exc
-
-        session = aiobotocore.session.get_session()
-        
         # Configure endpoint based on storage type
         endpoint = settings.STORAGE_ENDPOINT
         if self.storage_type == "r2":
@@ -66,18 +62,18 @@ class StorageManager:
             access_key = settings.STORAGE_ACCESS_KEY
             secret_key = settings.STORAGE_SECRET_KEY
         
-        self.client = session.create_client(
+        self.client = boto3.client(
             's3',
             endpoint_url=endpoint if settings.STORAGE_SECURE else f"http://{endpoint}",
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             region_name=settings.STORAGE_REGION,
             use_ssl=settings.STORAGE_SECURE,
-            config={
-                'retries': {'max_attempts': 3},
-                'connect_timeout': 10,
-                'read_timeout': 30
-            }
+            config=Config(
+                retries={'max_attempts': 3},
+                connect_timeout=10,
+                read_timeout=30,
+            )
         )
     
     async def _init_local_storage(self):
@@ -94,10 +90,10 @@ class StorageManager:
         """Ensure storage bucket exists"""
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
-                await self.client.head_bucket(Bucket=self.bucket)
+                await self._client_call("head_bucket", Bucket=self.bucket)
             except ClientError:
                 # Bucket doesn't exist, create it
-                await self.client.create_bucket(Bucket=self.bucket)
+                await self._client_call("create_bucket", Bucket=self.bucket)
                 logger.info(f"Created bucket: {self.bucket}")
                 
                 # Set bucket policy for public read (optional)
@@ -111,7 +107,8 @@ class StorageManager:
                             "Resource": f"arn:aws:s3:::{self.bucket}/*"
                         }]
                     }
-                    await self.client.put_bucket_policy(
+                    await self._client_call(
+                        "put_bucket_policy",
                         Bucket=self.bucket,
                         Policy=json.dumps(policy)
                     )
@@ -139,7 +136,8 @@ class StorageManager:
             }
             
             try:
-                await self.client.put_object(
+                await self._client_call(
+                    "put_object",
                     Bucket=self.bucket,
                     Key=file_path,
                     Body=file_data,
@@ -186,12 +184,15 @@ class StorageManager:
         
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
-                response = await self.client.get_object(
+                response = await self._client_call(
+                    "get_object",
                     Bucket=self.bucket,
                     Key=file_path
                 )
-                data = await response['Body'].read()
-                return data
+                try:
+                    return await asyncio.to_thread(response['Body'].read)
+                finally:
+                    response['Body'].close()
             except Exception as e:
                 logger.error(f"Failed to download from S3: {e}")
                 raise
@@ -209,7 +210,8 @@ class StorageManager:
         
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
-                await self.client.delete_object(
+                await self._client_call(
+                    "delete_object",
                     Bucket=self.bucket,
                     Key=file_path
                 )
@@ -234,7 +236,8 @@ class StorageManager:
         
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
-                url = await self.client.generate_presigned_url(
+                url = await self._client_call(
+                    "generate_presigned_url",
                     ClientMethod=method,
                     Params={
                         'Bucket': self.bucket,
@@ -256,7 +259,8 @@ class StorageManager:
         
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
-                await self.client.head_object(
+                await self._client_call(
+                    "head_object",
                     Bucket=self.bucket,
                     Key=file_path
                 )
@@ -278,7 +282,8 @@ class StorageManager:
         
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
-                response = await self.client.list_objects_v2(
+                response = await self._client_call(
+                    "list_objects_v2",
                     Bucket=self.bucket,
                     Prefix=prefix,
                     MaxKeys=max_keys
@@ -301,7 +306,8 @@ class StorageManager:
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
                 copy_source = {'Bucket': self.bucket, 'Key': source_path}
-                await self.client.copy_object(
+                await self._client_call(
+                    "copy_object",
                     Bucket=self.bucket,
                     Key=dest_path,
                     CopySource=copy_source
@@ -318,7 +324,7 @@ class StorageManager:
         """Check storage health"""
         try:
             if self.storage_type in ["minio", "s3", "r2"]:
-                await self.client.list_buckets()
+                await self._client_call("list_buckets")
             elif self.storage_type == "local":
                 Path(settings.LOCAL_STORAGE_PATH).exists()
             return True
@@ -331,7 +337,8 @@ class StorageManager:
         
         if self.storage_type in ["minio", "s3", "r2"]:
             try:
-                response = await self.client.head_object(
+                response = await self._client_call(
+                    "head_object",
                     Bucket=self.bucket,
                     Key=file_path
                 )
