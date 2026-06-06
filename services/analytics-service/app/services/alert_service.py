@@ -11,7 +11,7 @@ import asyncio
 
 from app.core.cache import redis_client
 from app.core.database import get_session
-from shared.types.models import User, Scan, Prediction
+from agriculture_ai.types.models import User, Scan, Prediction
 
 logger = logging.getLogger(__name__)
 

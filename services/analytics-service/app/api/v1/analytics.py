@@ -9,10 +9,8 @@ from sqlalchemy import select, func, and_, text
 
 from app.core.database import get_db
 from app.core.cache import cache_manager
-from shared.types.agriculture_ai.types.schemas import (
-    AnalyticsQuery, AnalyticsResponse, 
-    DashboardMetrics, DiseaseTrend, GeoDistribution
-)
+from agriculture_ai.types.models import ModelVersion, Prediction, Scan
+from app.schemas.analytics import DashboardMetrics, DiseaseTrend, GeoDistribution
 
 router = APIRouter()
 

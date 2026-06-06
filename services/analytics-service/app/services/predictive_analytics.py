@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 
 from app.core.cache import redis_client
 from app.core.database import get_session
-from shared.types.models import Scan, Prediction, Farm, Disease
+from agriculture_ai.types.models import Scan, Prediction, Farm, Disease
 
 logger = logging.getLogger(__name__)
 

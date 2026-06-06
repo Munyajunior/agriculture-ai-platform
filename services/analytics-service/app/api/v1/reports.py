@@ -147,7 +147,7 @@ async def schedule_report(
 
 @router.get("/export/dashboard")
 async def export_dashboard_data(
-    format: str = Query("csv", regex="^(csv|json|excel)$"),
+    format: str = Query("csv", pattern="^(csv|json|excel)$"),
     days: int = Query(30, ge=1, le=365),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.cache import redis_client, cached
-from shared.types.models import Scan, Prediction, User, Farm
+from agriculture_ai.types.models import Scan, Prediction, User, Farm
 from app.services.predictive_analytics import PredictiveAnalytics
 
 logger = logging.getLogger(__name__)
@@ -539,3 +539,6 @@ class AnalyticsEngine:
             return "medium"
         else:
             return "low"
+
+
+analytics_engine = AnalyticsEngine()

@@ -20,6 +20,28 @@ class DashboardSummary(BaseModel):
     end_date: str
 
 
+class DashboardMetrics(BaseModel):
+    total_scans: int
+    total_predictions: int
+    average_confidence: float
+    unique_users: int
+    inference_source_distribution: Dict[str, int]
+    top_diseases: List[Dict[str, Any]]
+    period_days: int
+
+
+class DiseaseTrend(BaseModel):
+    date: str
+    diseases: Dict[str, int]
+
+
+class GeoDistribution(BaseModel):
+    country: str
+    region: Optional[str] = None
+    scan_count: int
+    average_confidence: float
+
+
 class TimeSeriesData(BaseModel):
     """Time series data response"""
     metric: str

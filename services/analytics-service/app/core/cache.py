@@ -99,6 +99,7 @@ class RedisClient:
 
 # Global Redis client instance
 redis_client = RedisClient()
+cache_manager = redis_client
 
 
 def cached(ttl: int = 3600, key_prefix: str = ""):

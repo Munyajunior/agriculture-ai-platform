@@ -69,3 +69,6 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for FastAPI routes"""
     async with get_session() as session:
         yield session
+
+
+get_db = get_db_session

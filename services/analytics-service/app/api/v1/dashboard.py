@@ -41,9 +41,9 @@ async def get_dashboard_summary(
 
 @router.get("/timeseries")
 async def get_timeseries_data(
-    metric: str = Query(..., regex="^(scans|predictions|confidence|accuracy)$"),
+    metric: str = Query(..., pattern="^(scans|predictions|confidence|accuracy)$"),
     days: int = Query(30, ge=1, le=365),
-    interval: str = Query("day", regex="^(hour|day|week|month)$"),
+    interval: str = Query("day", pattern="^(hour|day|week|month)$"),
     crop_type: Optional[str] = None,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
@@ -88,7 +88,7 @@ async def get_disease_distribution(
 
 @router.get("/performance-metrics")
 async def get_performance_metrics(
-    time_range: str = Query("24h", regex="^(1h|24h|7d|30d)$"),
+    time_range: str = Query("24h", pattern="^(1h|24h|7d|30d)$"),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Get system performance metrics"""
@@ -100,7 +100,7 @@ async def get_performance_metrics(
 @router.get("/user-activity")
 async def get_user_activity(
     days: int = Query(7, ge=1, le=90),
-    activity_type: Optional[str] = Query(None, regex="^(scan|prediction|login)$"),
+    activity_type: Optional[str] = Query(None, pattern="^(scan|prediction|login)$"),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Get user activity metrics"""

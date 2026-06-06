@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 class ReportRequest(BaseModel):
     """Report generation request"""
-    report_type: str = Field(..., regex="^(dashboard|disease|performance|export)$")
+    report_type: str = Field(..., pattern="^(dashboard|disease|performance|export)$")
     parameters: Dict[str, Any] = Field(default_factory=dict)
-    format: str = Field(default="pdf", regex="^(pdf|csv|excel|json)$")
+    format: str = Field(default="pdf", pattern="^(pdf|csv|excel|json)$")
 
 
 class ReportResponse(BaseModel):
@@ -36,5 +36,5 @@ class ScheduledReportRequest(BaseModel):
     """Schedule report request"""
     report_type: str
     parameters: Dict[str, Any]
-    schedule: str = Field(..., regex="^(daily|weekly|monthly)$")
+    schedule: str = Field(..., pattern="^(daily|weekly|monthly)$")
     recipients: List[str]

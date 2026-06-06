@@ -13,7 +13,7 @@ import platform
 
 from app.core.cache import redis_client
 from app.core.database import get_session
-from shared.types.models import Scan, Prediction, User, Device
+from agriculture_ai.types.models import Scan, Prediction, User, Device
 
 logger = logging.getLogger(__name__)
 
