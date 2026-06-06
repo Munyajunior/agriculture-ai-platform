@@ -3,47 +3,16 @@
 
 from typing import Optional, Dict, Any, List
 from uuid import UUID
-import httpx
 from ..config import settings
-import logging
-
-logger = logging.getLogger(__name__)
+from .base import BaseServiceClient
 
 
-class SyncServiceClient:
+class SyncServiceClient(BaseServiceClient):
     """Client for Sync Service communication"""
     
     def __init__(self):
-        self.base_url = settings.SYNC_SERVICE_URL
-        self.timeout = 60.0
-    
-    async def _request(
-        self,
-        method: str,
-        endpoint: str,
-        data: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """Make HTTP request to sync service"""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            url = f"{self.base_url}{endpoint}"
-            
-            try:
-                if method == "POST":
-                    response = await client.post(url, json=data)
-                elif method == "GET":
-                    response = await client.get(url, params=data)
-                else:
-                    raise ValueError(f"Unsupported method: {method}")
-                
-                response.raise_for_status()
-                return response.json()
-                
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Sync service error: {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"Sync service request failed: {e}")
-                raise
+        super().__init__(settings.SYNC_SERVICE_URL, timeout=60.0)
+        self.service_name = "Sync service"
     
     async def sync_offline_data(
         self,

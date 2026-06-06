@@ -4,18 +4,24 @@
 from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
-from ....core.dependencies import get_current_user, get_current_active_user
-from ....clients.ai_service import AIServiceClient
-from ....clients.media_service import MediaServiceClient
-from ....schemas.prediction import PredictionRequest, PredictionResponse, BatchPredictionRequest
-from ....core.rate_limiter import limiter
+from ...core.dependencies import get_current_active_user
+from ...clients.ai_service import AIServiceClient
+from ...clients.media_service import MediaServiceClient
+from ...schemas.prediction import PredictionRequest, PredictionResponse, BatchPredictionRequest
+from ...core.rate_limiter import limiter
 
 router = APIRouter()
 ai_client = AIServiceClient()
 media_client = MediaServiceClient()
+
+
+def _user_id(current_user) -> UUID:
+    return UUID(str(current_user["id"]))
+
+
+def _user_role(current_user) -> str:
+    return current_user.get("role", "")
 
 @router.post("/single", response_model=PredictionResponse)
 @limiter.limit("10/minute")
@@ -50,7 +56,7 @@ async def predict_single(
             # Cloud inference
             prediction = await ai_client.cloud_inference(
                 image_data=image_data,
-                user_id=current_user.id,
+                user_id=_user_id(current_user),
                 farm_id=request.farm_id,
                 device_type=request.device_type,
                 location_lat=request.location_lat,
@@ -77,7 +83,7 @@ async def predict_batch(
     try:
         predictions = await ai_client.batch_inference(
             images=request.images,
-            user_id=current_user.id,
+            user_id=_user_id(current_user),
             farm_id=request.farm_id
         )
         return predictions
@@ -110,13 +116,13 @@ async def upload_and_predict(
         # Upload to media service
         image_url = await media_client.upload_image(
             file=file,
-            user_id=current_user.id
+            user_id=_user_id(current_user)
         )
         
         # Get prediction
         prediction = await ai_client.cloud_inference(
             image_url=image_url,
-            user_id=current_user.id,
+            user_id=_user_id(current_user),
             farm_id=farm_id,
             device_type=device_type
         )
@@ -141,7 +147,7 @@ async def get_prediction_history(
 ):
     """Get prediction history for a user"""
     # Check authorization
-    if current_user.id != user_id and current_user.role not in ["admin", "agronomist"]:
+    if _user_id(current_user) != user_id and _user_role(current_user) not in ["admin", "agronomist"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this user's history"
@@ -171,7 +177,8 @@ async def get_prediction_details(
         prediction = await ai_client.get_prediction_details(prediction_id)
         
         # Check authorization
-        if prediction.user_id != current_user.id and current_user.role not in ["admin", "agronomist"]:
+        prediction_user_id = UUID(str(prediction.get("user_id")))
+        if prediction_user_id != _user_id(current_user) and _user_role(current_user) not in ["admin", "agronomist"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to view this prediction"

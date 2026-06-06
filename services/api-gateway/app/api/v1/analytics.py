@@ -125,7 +125,7 @@ async def get_performance_metrics(
 
 @router.get("/export")
 async def export_analytics(
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     current_user = Depends(get_current_admin_user)

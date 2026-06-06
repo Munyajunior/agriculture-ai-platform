@@ -2,86 +2,74 @@
 """Auth service client"""
 
 from typing import Optional, Dict, Any, List
-import httpx
 from ..config import settings
-import logging
-
-logger = logging.getLogger(__name__)
+from .base import BaseServiceClient
 
 
-class AuthServiceClient:
+class AuthServiceClient(BaseServiceClient):
     """Client for Auth Service communication"""
-    
+
     def __init__(self):
-        self.base_url = settings.AUTH_SERVICE_URL
-        self.timeout = 30.0
-    
-    async def _request(
-        self,
-        method: str,
-        endpoint: str,
-        data: Optional[Dict] = None,
-        token: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Make HTTP request to auth service"""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            headers = {}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
-            
-            url = f"{self.base_url}{endpoint}"
-            
-            try:
-                if method == "GET":
-                    response = await client.get(url, headers=headers, params=data)
-                elif method == "POST":
-                    response = await client.post(url, headers=headers, json=data)
-                elif method == "PUT":
-                    response = await client.put(url, headers=headers, json=data)
-                elif method == "DELETE":
-                    response = await client.delete(url, headers=headers)
-                else:
-                    raise ValueError(f"Unsupported method: {method}")
-                
-                response.raise_for_status()
-                return response.json()
-                
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Auth service error: {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"Auth service request failed: {e}")
-                raise
-    
+        super().__init__(settings.AUTH_SERVICE_URL, timeout=30.0)
+        self.service_name = "Auth service"
+
     async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user by ID"""
         try:
-            return await self._request("GET", f"/users/{user_id}")
-        except:
+            return await self._request("GET", f"/api/v1/users/{user_id}")
+        except Exception:
             return None
-    
+
     async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email"""
         try:
-            return await self._request("GET", "/users", data={"email": email})
-        except:
+            return await self._request("GET", "/api/v1/users", data={"email": email})
+        except Exception:
             return None
-    
+
     async def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
         """Verify JWT token with auth service"""
         try:
-            return await self._request("POST", "/verify", token=token)
-        except:
+            return await self._request("GET", "/api/v1/users/me", token=token)
+        except Exception:
             return None
-    
+
+    async def register_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new user."""
+        return await self._request("POST", "/api/v1/auth/register", data=user_data)
+
+    async def login(self, login_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Authenticate a user."""
+        return await self._request("POST", "/api/v1/auth/login", data=login_data)
+
     async def refresh_token(self, refresh_token: str) -> Dict[str, Any]:
         """Refresh access token"""
-        return await self._request("POST", "/refresh", data={"refresh_token": refresh_token})
-    
+        return await self._request("POST", "/api/v1/auth/refresh", data={"refresh_token": refresh_token})
+
+    async def change_password(self, token: str, password_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Change the current user's password."""
+        return await self._request("POST", "/api/v1/users/me/change-password", data=password_data, token=token)
+
+    async def update_current_user(self, token: str, user_update: Dict[str, Any]) -> Dict[str, Any]:
+        """Update the current user's profile."""
+        return await self._request("PUT", "/api/v1/users/me", data=user_update, token=token)
+
+    async def forgot_password(self, email: str) -> Dict[str, Any]:
+        """Request a password reset."""
+        return await self._request("POST", "/api/v1/auth/forgot-password", data={"email": email})
+
+    async def reset_password(self, token: str, new_password: str) -> Dict[str, Any]:
+        """Reset password using a reset token."""
+        return await self._request(
+            "POST",
+            "/api/v1/auth/reset-password",
+            data={"token": token, "new_password": new_password},
+        )
+
     async def logout(self, token: str) -> bool:
         """Logout user and invalidate token"""
         try:
-            await self._request("POST", "/logout", token=token)
+            await self._request("POST", "/api/v1/auth/logout", token=token, data={"access_token": token})
             return True
-        except:
+        except Exception:
             return False

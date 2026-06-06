@@ -20,16 +20,22 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS
-    CORS_ORIGINS: str = Field(default="http://localhost:3000, http://localhost:8080")
-    ALLOWED_HOSTS: str = Field(default="localhost, 127.0.0.1")
+    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
+    ALLOWED_HOSTS: List[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
 
-    @field_validator("CORS_ORIGINS", pre=True)
+    @field_validator("DEBUG", mode="before")
+    def parse_debug(cls, v) -> bool:
+        if isinstance(v, str):
+            return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
+        return bool(v)
+
+    @field_validator("CORS_ORIGINS", mode="before")
     def split_cors_origins(cls, v)-> List[str]:
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
 
-    @field_validator("ALLOWED_HOSTS", pre=True)
+    @field_validator("ALLOWED_HOSTS", mode="before")
     def split_allowed_hosts(cls, v)-> List[str]:
         if isinstance(v, str):
             return [host.strip() for host in v.split(",")]

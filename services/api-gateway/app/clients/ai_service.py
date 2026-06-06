@@ -3,51 +3,16 @@
 
 from typing import Optional, Dict, Any, List
 from uuid import UUID
-import httpx
 from ..config import settings
-import logging
-
-logger = logging.getLogger(__name__)
+from .base import BaseServiceClient
 
 
-class AIServiceClient:
+class AIServiceClient(BaseServiceClient):
     """Client for AI Service communication"""
     
     def __init__(self):
-        self.base_url = settings.AI_SERVICE_URL
-        self.timeout = 60.0  # Longer timeout for AI inference
-    
-    async def _request(
-        self,
-        method: str,
-        endpoint: str,
-        data: Optional[Dict] = None,
-        files: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """Make HTTP request to AI service"""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            url = f"{self.base_url}{endpoint}"
-            
-            try:
-                if method == "POST":
-                    if files:
-                        response = await client.post(url, files=files, data=data)
-                    else:
-                        response = await client.post(url, json=data)
-                elif method == "GET":
-                    response = await client.get(url, params=data)
-                else:
-                    raise ValueError(f"Unsupported method: {method}")
-                
-                response.raise_for_status()
-                return response.json()
-                
-            except httpx.HTTPStatusError as e:
-                logger.error(f"AI service error: {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"AI service request failed: {e}")
-                raise
+        super().__init__(settings.AI_SERVICE_URL, timeout=60.0)
+        self.service_name = "AI service"
     
     async def cloud_inference(
         self,

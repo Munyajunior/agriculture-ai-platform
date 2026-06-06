@@ -2,48 +2,17 @@
 """Analytics service client"""
 
 from typing import Optional, Dict, Any, List
-from datetime import datetime
-import httpx
+from datetime import datetime, timezone
 from ..config import settings
-import logging
-
-logger = logging.getLogger(__name__)
+from .base import BaseServiceClient
 
 
-class AnalyticsServiceClient:
+class AnalyticsServiceClient(BaseServiceClient):
     """Client for Analytics Service communication"""
     
     def __init__(self):
-        self.base_url = settings.ANALYTICS_SERVICE_URL
-        self.timeout = 30.0
-    
-    async def _request(
-        self,
-        method: str,
-        endpoint: str,
-        data: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """Make HTTP request to analytics service"""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            url = f"{self.base_url}{endpoint}"
-            
-            try:
-                if method == "GET":
-                    response = await client.get(url, params=data)
-                elif method == "POST":
-                    response = await client.post(url, json=data)
-                else:
-                    raise ValueError(f"Unsupported method: {method}")
-                
-                response.raise_for_status()
-                return response.json()
-                
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Analytics service error: {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"Analytics service request failed: {e}")
-                raise
+        super().__init__(settings.ANALYTICS_SERVICE_URL, timeout=30.0)
+        self.service_name = "Analytics service"
     
     async def get_dashboard_stats(
         self,
@@ -110,7 +79,7 @@ class AnalyticsServiceClient:
             "event_type": event_type,
             "user_id": user_id,
             "metadata": metadata or {},
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         return await self._request("POST", "/api/v1/analytics/track", data=data)

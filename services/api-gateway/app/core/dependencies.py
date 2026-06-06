@@ -4,7 +4,7 @@
 from typing import Optional, Dict, Any
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import jwt
+from jose import JWTError, ExpiredSignatureError, jwt
 from ..config import settings
 from ..clients.auth_service import AuthServiceClient
 from ..core.redis_client import redis_client
@@ -68,12 +68,12 @@ async def get_current_user(
         
         return user
         
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired",
         )
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -138,7 +138,7 @@ async def get_current_farmer_user(
     return current_user
 
 
-def get_optional_user(
+async def get_optional_user(
     token: Optional[str] = Depends(get_token_from_request)
 ) -> Optional[Dict[str, Any]]:
     """Get current user if authenticated, otherwise None"""
@@ -146,6 +146,6 @@ def get_optional_user(
         return None
     
     try:
-        return get_current_user(token)
+        return await get_current_user(token)
     except HTTPException:
         return None

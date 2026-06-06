@@ -2,49 +2,16 @@
 """Model registry client"""
 
 from typing import Optional, Dict, Any, List
-import httpx
 from ..config import settings
-import logging
-
-logger = logging.getLogger(__name__)
+from .base import BaseServiceClient
 
 
-class ModelRegistryClient:
+class ModelRegistryClient(BaseServiceClient):
     """Client for Model Registry Service communication"""
     
     def __init__(self):
-        self.base_url = settings.MODEL_REGISTRY_URL
-        self.timeout = 30.0
-    
-    async def _request(
-        self,
-        method: str,
-        endpoint: str,
-        data: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """Make HTTP request to model registry"""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            url = f"{self.base_url}{endpoint}"
-            
-            try:
-                if method == "GET":
-                    response = await client.get(url, params=data)
-                elif method == "POST":
-                    response = await client.post(url, json=data)
-                elif method == "PUT":
-                    response = await client.put(url, json=data)
-                else:
-                    raise ValueError(f"Unsupported method: {method}")
-                
-                response.raise_for_status()
-                return response.json()
-                
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Model registry error: {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"Model registry request failed: {e}")
-                raise
+        super().__init__(settings.MODEL_REGISTRY_URL, timeout=30.0)
+        self.service_name = "Model registry"
     
     async def get_active_model(self) -> Dict[str, Any]:
         """Get currently active model"""

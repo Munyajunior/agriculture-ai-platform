@@ -116,7 +116,7 @@ async def activate_model(
 @router.get("/{model_id}/download")
 async def download_model(
     model_id: str,
-    format: str = Query("onnx", regex="^(onnx|pytorch|quantized)$"),
+    format: str = Query("onnx", pattern="^(onnx|pytorch|quantized)$"),
     current_user = Depends(get_current_active_user)
 ):
     """Get model download URL"""

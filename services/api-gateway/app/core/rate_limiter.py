@@ -66,6 +66,23 @@ class IPRateLimiter(RateLimiter):
         key = f"ip:{client_ip}"
         return await self.check_rate_limit(key)
 
+    async def __call__(self, request: Request) -> None:
+        """Allow use as a FastAPI dependency."""
+        is_allowed, headers = await self.check(request)
+        if not is_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Rate limit exceeded. Please try again later.",
+                headers=headers,
+            )
+
+    def limit(self, _: str):
+        """Compatibility shim for routes decorated like slowapi."""
+        def decorator(func):
+            return func
+
+        return decorator
+
 
 class UserRateLimiter(RateLimiter):
     """Rate limiter based on user ID"""
@@ -73,6 +90,13 @@ class UserRateLimiter(RateLimiter):
     async def check(self, user_id: str) -> Tuple[bool, Dict]:
         key = f"user:{user_id}"
         return await self.check_rate_limit(key)
+
+    def limit(self, _: str):
+        """Compatibility shim for routes decorated like slowapi."""
+        def decorator(func):
+            return func
+
+        return decorator
 
 
 class EndpointRateLimiter(RateLimiter):

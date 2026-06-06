@@ -1,9 +1,9 @@
 # services/api-gateway/app/api/v1/auth.py
 """Authentication API endpoints"""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from ...schemas.auth import (
     UserRegister,
@@ -18,6 +18,7 @@ from ...schemas.auth import (
 from ...clients.auth_service import AuthServiceClient
 from ...core.rate_limiter import auth_limiter
 from ...core.redis_client import redis_client
+from ...core.dependencies import get_current_active_user, get_token_from_request
 
 router = APIRouter()
 auth_client = AuthServiceClient()
@@ -31,15 +32,6 @@ async def register_user(
 ):
     """Register new user account"""
     try:
-        # Check if user exists
-        existing_user = await auth_client.get_user_by_email(user_data.email)
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-        
-        # Create user
         user = await auth_client.register_user(user_data.dict())
         
         # Track registration event
@@ -158,13 +150,17 @@ async def logout_user(request: Request):
 @router.post("/change-password")
 async def change_password(
     password_data: ChangePasswordRequest,
-    current_user = Depends(get_current_active_user)
+    current_user = Depends(get_current_active_user),
+    token: str = Depends(get_token_from_request),
 ):
     """Change user password"""
     try:
         await auth_client.change_password(
-            current_user["id"],
-            password_data.dict()
+            token,
+            {
+                "current_password": password_data.old_password,
+                "new_password": password_data.new_password,
+            }
         )
         
         return {"message": "Password changed successfully"}
@@ -225,14 +221,12 @@ async def get_current_user_info(
 @router.put("/me")
 async def update_current_user(
     user_update: dict,
-    current_user = Depends(get_current_active_user)
+    current_user = Depends(get_current_active_user),
+    token: str = Depends(get_token_from_request),
 ):
     """Update current user information"""
     try:
-        updated_user = await auth_client.update_user(
-            current_user["id"],
-            user_update
-        )
+        updated_user = await auth_client.update_current_user(token, user_update)
         
         return updated_user
         
