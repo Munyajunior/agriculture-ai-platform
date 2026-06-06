@@ -3,7 +3,7 @@
 
 from typing import List, Optional
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "AI Service"
     DEBUG: bool = Field(default=False)
     ENVIRONMENT: str = Field(default="development")
+
+    # CORS
+    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
     
     # Database
     DATABASE_URL: str = Field(
@@ -52,6 +55,12 @@ class Settings(BaseSettings):
     # Monitoring
     ENABLE_METRICS: bool = Field(default=True)
     PROMETHEUS_PORT: int = Field(default=9090)
+
+    @field_validator("DEBUG", mode="before")
+    def parse_debug(cls, v) -> bool:
+        if isinstance(v, str):
+            return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
+        return bool(v)
     
     class Config:
         env_file = ".env"

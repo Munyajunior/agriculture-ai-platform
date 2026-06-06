@@ -122,3 +122,6 @@ class ModelRegistry:
             return True
         
         return False
+
+
+model_registry = ModelRegistry()

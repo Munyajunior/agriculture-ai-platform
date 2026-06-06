@@ -188,3 +188,6 @@ class InferenceEngine:
             "input_size": self.model_config['input_size'],
             "num_classes": self.model.get_num_classes() if hasattr(self.model, 'get_num_classes') else None
         }
+
+
+inference_engine = InferenceEngine()

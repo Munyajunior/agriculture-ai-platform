@@ -12,10 +12,7 @@ import logging
 
 from ..core.inference_engine import inference_engine
 from ..core.database import AsyncSessionLocal
-from ..models.scan import Scan
-from ..models.prediction import Prediction
-from ..models.disease import Disease
-from ..models.treatment import Treatment
+from agriculture_ai.types.models import Scan, Prediction, Disease, Treatment
 
 logger = logging.getLogger(__name__)
 

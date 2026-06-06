@@ -6,10 +6,10 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
     async_sessionmaker
 )
-from sqlalchemy.orm import declarative_base
 from typing import AsyncGenerator
 import logging
 
+from agriculture_ai.types.models import Base
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -35,10 +35,6 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False
 )
 
-# Base class for models
-Base = declarative_base()
-
-
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for getting database session"""
     async with AsyncSessionLocal() as session:
@@ -56,10 +52,6 @@ async def init_db():
     """Initialize database (create tables)"""
     try:
         async with engine.begin() as conn:
-            # Import all models here
-            from shared.types.agriculture_ai.types.models import Scan
-            from shared.types.agriculture_ai.types.models import Prediction
-            
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database initialized successfully")
     except Exception as e:

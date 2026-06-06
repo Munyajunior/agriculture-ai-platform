@@ -4,15 +4,22 @@
 from typing import Optional, List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-import asyncio
+from pydantic import BaseModel
 
-from shared.inference-sdk.agriculture_inference.inference_engine import inference_engine
 from ...core.database import get_db
-from shared.types.agriculture_ai.types.schemas import PredictionRequest, PredictionResponse, BatchPredictionRequest
+from agriculture_ai.types.schemas import PredictionRequest, PredictionResponse
 from ...services.prediction_service import PredictionService
 
 router = APIRouter()
 prediction_service = PredictionService()
+
+
+class BatchPredictionRequest(BaseModel):
+    """Batch prediction request."""
+
+    images: List[str]
+    user_id: Optional[UUID] = None
+    farm_id: Optional[UUID] = None
 
 
 @router.post("/single", response_model=PredictionResponse)

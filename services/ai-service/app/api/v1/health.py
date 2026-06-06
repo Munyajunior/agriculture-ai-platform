@@ -6,9 +6,9 @@ from datetime import datetime
 import asyncio
 import torch
 
-from ....core.inference_engine import inference_engine
-from ....core.database import get_db
-from ....config import settings
+from ...core.inference_engine import inference_engine
+from ...core.database import get_db
+from ...config import settings
 
 router = APIRouter()
 
