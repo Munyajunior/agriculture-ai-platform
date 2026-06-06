@@ -1,7 +1,7 @@
 # services/auth-service/app/core/security.py
 """Security utilities for authentication"""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Tuple
 from uuid import UUID, uuid4
 import hashlib
@@ -52,8 +52,8 @@ class SecurityManager:
             "role": role,
             "type": "access",
             "jti": str(uuid4()),
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
             "iss": settings.JWT_ISSUER,
             "aud": settings.JWT_AUDIENCE
         }
@@ -70,8 +70,8 @@ class SecurityManager:
             "username": username,
             "type": "refresh",
             "jti": str(uuid4()),
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             "iss": settings.JWT_ISSUER,
             "aud": settings.JWT_AUDIENCE
         }
@@ -149,7 +149,7 @@ class SecurityManager:
             
             if jti and exp:
                 # Calculate remaining TTL
-                ttl = max(exp - datetime.utcnow().timestamp(), 0)
+                ttl = max(exp - datetime.now(timezone.utc).timestamp(), 0)
                 if ttl > 0:
                     await redis_client.setex(
                         f"{self._blacklist_prefix}{jti}",
@@ -161,7 +161,7 @@ class SecurityManager:
                 await redis_client.delete(f"refresh_token:{jti}")
                 
                 return True
-        except:
+        except Exception:
             pass
         
         return False
@@ -256,6 +256,21 @@ class SecurityManager:
     def verify_api_key(self, api_key: str, hashed: str) -> bool:
         """Verify API key against hash"""
         return hmac.compare_digest(self.hash_api_key(api_key), hashed)
+
+    def verify_totp(self, code: str, secret: Optional[str]) -> bool:
+        """Verify a TOTP code when a TOTP backend is configured."""
+        if not secret:
+            return False
+
+        try:
+            import pyotp
+        except ImportError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Two-factor authentication is not configured",
+            ) from exc
+
+        return bool(pyotp.TOTP(secret).verify(code, valid_window=1))
 
 
 # Global security manager instance

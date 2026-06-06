@@ -3,9 +3,12 @@
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
+from sqlalchemy import text
 
 from app.config import settings
 from app.api.v1 import api_router
@@ -74,13 +77,24 @@ instrumentator.instrument(app).expose(app, endpoint="/metrics")
 app.include_router(api_router, prefix="/api/v1")
 
 
+async def check_db_connection() -> bool:
+    """Check database connectivity."""
+    try:
+        from app.core.database import get_db
+        async for session in get_db():
+            await session.execute(text("SELECT 1"))
+            return True
+    except Exception:
+        return False
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
         "service": "auth-service",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -89,28 +103,16 @@ async def readiness_check():
     """Readiness check endpoint"""
     db_ready = await check_db_connection()
     redis_ready = await redis_client.ping()
-    
+
     return {
         "ready": db_ready and redis_ready,
         "database": db_ready,
-        "redis": redis_ready
+        "redis": redis_ready,
     }
-
-
-async def check_db_connection():
-    """Check database connectivity"""
-    try:
-        from app.core.database import get_db
-        async for session in get_db():
-            await session.execute("SELECT 1")
-            return True
-    except:
-        return False
 
 
 if __name__ == "__main__":
     import uvicorn
-    from datetime import datetime
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

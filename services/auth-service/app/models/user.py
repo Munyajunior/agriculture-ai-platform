@@ -1,13 +1,12 @@
 # services/auth-service/app/models/user.py
-from shared.types.agriculture_ai.types.models import User
-from datetime import datetime
+from agriculture_ai.types.models import Base, User
+from datetime import datetime, timezone
 from typing import Optional, List
 from uuid import UUID, uuid4
 from sqlalchemy import Column, String, DateTime, Boolean, Integer, JSON, Table, Index, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 
-from ..core.database import Base
 class APIKey(Base):
     """API key model for programmatic access"""
     __tablename__ = "api_keys"
@@ -20,7 +19,7 @@ class APIKey(Base):
     expires_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     permissions = Column(JSON, default=list)  # List of permissions/scopes
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = relationship("User", back_populates="api_keys")
@@ -37,8 +36,8 @@ class OAuthAccount(Base):
     access_token = Column(String(500), nullable=True)
     refresh_token = Column(String(500), nullable=True)
     expires_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = relationship("User", back_populates="oauth_accounts")
@@ -57,7 +56,7 @@ class PasswordReset(Base):
     token = Column(String(255), unique=True, nullable=False, index=True)
     used = Column(Boolean, default=False)
     expires_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Session(Base):
@@ -72,8 +71,8 @@ class Session(Base):
     device_info = Column(JSON, default={})
     is_active = Column(Boolean, default=True)
     expires_at = Column(DateTime, nullable=False)
-    last_activity = Column(DateTime, default=datetime.utcnow)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    last_activity = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     __table_args__ = (
         Index("idx_session_user", "user_id", "is_active"),

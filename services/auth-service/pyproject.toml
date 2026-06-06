@@ -5,6 +5,7 @@ description = "Authentication Service for Agriculture AI Platform"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "agriculture-shared-types",
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
     "email-validator>=2.3.0",
@@ -24,5 +25,8 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [tool.uv.sources]
-agriculture-ai-shared = { path = "../../shared/types" }
+agriculture-shared-types = { workspace = true }

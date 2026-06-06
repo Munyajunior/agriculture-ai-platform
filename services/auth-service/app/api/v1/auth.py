@@ -1,7 +1,7 @@
 # services/auth-service/app/api/v1/auth.py
 """Authentication API endpoints"""
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,7 +51,7 @@ async def register(
         phone_number=user_data.phone_number,
         role="farmer",
         is_verified=False,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     
     db.add(new_user)
@@ -94,7 +94,7 @@ async def login(
         )
     
     # Check if account is locked
-    if user.locked_until and user.locked_until > datetime.utcnow():
+    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Account locked until {user.locked_until}"
@@ -116,7 +116,7 @@ async def login(
             )
         
         # Verify 2FA code
-        if not verify_totp(login_data.two_factor_code, user.two_factor_secret):
+        if not security_manager.verify_totp(login_data.two_factor_code, user.two_factor_secret):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid 2FA code"
@@ -134,13 +134,13 @@ async def login(
         session_token=tokens["refresh_token"],
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent"),
-        expires_at=datetime.utcnowfromtimestamp(tokens["refresh_expires_in"]),
-        last_activity=datetime.utcnow()
+        expires_at=datetime.now(timezone.utc) + timedelta(seconds=tokens["refresh_expires_in"]),
+        last_activity=datetime.now(timezone.utc)
     )
     db.add(session)
     
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     await db.commit()
     
     # Return response
@@ -257,13 +257,13 @@ async def reset_password(
     
     # Update password
     user.hashed_password = security_manager.get_password_hash(reset_data.new_password)
-    user.password_changed_at = datetime.utcnow()
+    user.password_changed_at = datetime.now(timezone.utc)
     
     # Invalidate all sessions
-    await db.execute(
+    sessions_result = await db.execute(
         select(Session).where(Session.user_id == user.id)
     )
-    sessions = result.scalars().all()
+    sessions = sessions_result.scalars().all()
     for session in sessions:
         session.is_active = False
         await security_manager.revoke_token(session.session_token)

@@ -1,6 +1,7 @@
 # services/auth-service/app/api/dependencies.py
 """Authentication dependencies for FastAPI"""
 
+from functools import wraps
 from typing import Optional, List
 from uuid import UUID
 from fastapi import Depends, HTTPException, status
@@ -78,10 +79,31 @@ async def get_current_verified_user(
 
 
 def require_role(roles: List[str]):
-    """Dependency factory for role-based access control"""
-    async def role_checker(
-        current_user: User = Depends(get_current_active_user)
-    ) -> User:
+    """Decorator for role-based access control on endpoints with current_user."""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            current_user = kwargs.get("current_user")
+            if current_user is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required",
+                )
+            if current_user.role not in roles:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Required role: {', '.join(roles)}",
+                )
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def require_role_dependency(roles: List[str]):
+    """Dependency factory for role-based access control."""
+    async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
         if current_user.role not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

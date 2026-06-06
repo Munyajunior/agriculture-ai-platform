@@ -2,6 +2,7 @@
 """User session management endpoints"""
 
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -200,6 +201,7 @@ async def list_all_sessions(
     active_only: bool = True,
     skip: int = 0,
     limit: int = 100,
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Admin: List all sessions across users"""
@@ -252,6 +254,7 @@ async def list_all_sessions(
 @require_role(["admin"])
 async def admin_revoke_session(
     session_id: UUID,
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Admin: Force revoke any session"""
@@ -279,6 +282,7 @@ async def admin_revoke_session(
 @router.delete("/admin/expired")
 @require_role(["admin"])
 async def cleanup_expired_sessions(
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Admin: Clean up all expired sessions"""

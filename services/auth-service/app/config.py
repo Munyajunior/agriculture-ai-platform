@@ -38,9 +38,15 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: Optional[str] = None
     
     # CORS
-    CORS_ORIGINS: str = Field(default="http://localhost:3000,http://localhost:8080")
+    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"])
 
-    @field_validator("CORS_ORIGINS", pre=True)
+    @field_validator("DEBUG", mode="before")
+    def parse_debug(cls, v) -> bool:
+        if isinstance(v, str):
+            return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
+        return bool(v)
+
+    @field_validator("CORS_ORIGINS", mode="before")
     def split_cors_origins(cls, v) -> List[str]:
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]

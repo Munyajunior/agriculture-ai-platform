@@ -2,6 +2,7 @@
 """User management API endpoints"""
 
 from uuid import UUID
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -61,7 +62,7 @@ async def change_password(
     
     # Update password
     current_user.hashed_password = security_manager.get_password_hash(password_data.new_password)
-    current_user.password_changed_at = datetime.utcnow()
+    current_user.password_changed_at = datetime.now(timezone.utc)
     
     await db.commit()
     
