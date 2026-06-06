@@ -1,61 +1,28 @@
-# infrastructure/docker/Dockerfile.ai-service
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install system dependencies for OpenCV
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    curl \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libgomp1 \
-    wget \
     && rm -rf /var/lib/apt/lists/*
-
-# Install uv
 RUN pip install uv
 
-# Copy dependency files
-COPY services/ai-service/pyproject.toml services/ai-service/
-COPY shared/types/pyproject.toml shared/types/
-
-# Install dependencies
-RUN cd services/ai-service && uv pip install --system -e .
-
-# Final stage
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy installed packages
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Copy application code
+COPY shared/types /app/shared/types
+COPY shared/inference-sdk /app/shared/inference-sdk
 COPY services/ai-service /app/services/ai-service
-COPY shared /app/shared
+
+RUN uv pip install --system /app/shared/types /app/shared/inference-sdk /app/services/ai-service
 
 WORKDIR /app/services/ai-service
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN mkdir -p /models && useradd -m -u 1000 appuser && chown -R appuser:appuser /app /models
 USER appuser
-
-# Download pre-trained model (optional)
-RUN mkdir -p /app/models
 
 EXPOSE 8002
 

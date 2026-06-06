@@ -1,0 +1,20 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y curl libgomp1 && rm -rf /var/lib/apt/lists/*
+RUN pip install uv
+
+COPY shared/types /app/shared/types
+COPY services/analytics-service /app/services/analytics-service
+
+RUN uv pip install --system /app/shared/types /app/services/analytics-service
+
+WORKDIR /app/services/analytics-service
+
+RUN mkdir -p /reports && useradd -m -u 1000 appuser && chown -R appuser:appuser /app /reports
+USER appuser
+
+EXPOSE 8003
+
+CMD ["python", "main.py"]

@@ -6,15 +6,15 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN pip install uv
 
 COPY shared/types /app/shared/types
-COPY services/api-gateway /app/services/api-gateway
+COPY services/auth-service /app/services/auth-service
 
-RUN uv pip install --system /app/shared/types /app/services/api-gateway
+RUN uv pip install --system /app/shared/types /app/services/auth-service
 
-WORKDIR /app/services/api-gateway
+WORKDIR /app/services/auth-service
 
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8001
 
 CMD ["python", "main.py"]
