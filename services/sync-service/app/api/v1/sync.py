@@ -12,7 +12,7 @@ from ...schemas import (
     SyncRequest, SyncResponse, SyncStatusResponse,
     BatchSyncRequest, SyncItem
 )
-from ..dependencies import verify_device
+from .dependencies import verify_device
 
 router = APIRouter()
 sync_engine = SyncEngine()

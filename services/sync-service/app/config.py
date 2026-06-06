@@ -3,7 +3,7 @@
 
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -58,10 +58,11 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000", "http://localhost:8080"])
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
+    @field_validator("DEBUG", mode="before")
+    def parse_debug(cls, v) -> bool:
+        if isinstance(v, str):
+            return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
+        return bool(v)
 
 settings = Settings()

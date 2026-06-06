@@ -8,7 +8,7 @@ from uuid import UUID
 from ...database import AsyncSessionLocal, SyncConflict
 from ...core.conflict_resolver import ConflictResolver
 from ...schemas import ConflictResponse, ConflictResolutionRequest
-from ..dependencies import verify_device
+from .dependencies import verify_device
 
 router = APIRouter()
 conflict_resolver = ConflictResolver()

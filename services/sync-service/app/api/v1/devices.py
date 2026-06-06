@@ -9,7 +9,7 @@ from uuid import UUID
 from ...database import AsyncSessionLocal, DeviceSyncState
 from ...core.sync_engine import SyncEngine
 from ...schemas import DeviceRegisterRequest, DeviceResponse
-from ..dependencies import verify_device
+from .dependencies import verify_device
 
 router = APIRouter()
 sync_engine = SyncEngine()
