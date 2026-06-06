@@ -2,22 +2,27 @@
 """Upload endpoints for images"""
 
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+import io
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from uuid import UUID
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
+from PIL import Image
+from sqlalchemy import select
 
-from ....core.storage import StorageManager
-from ....core.image_processor import ImageProcessor
-from ....core.cache import CacheManager
-from ....database import get_db, MediaFile, UploadSession
-from ....config import settings
+from ...core.storage import StorageManager
+from ...core.image_processor import ImageProcessor
+from ...core.cache import CacheManager
+from ...database import get_db, MediaFile, UploadSession
+from ...config import settings
 from ...dependencies import verify_token, get_current_user_id
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 storage_manager = StorageManager()
 image_processor = ImageProcessor()
 cache_manager = CacheManager()
@@ -27,12 +32,12 @@ limiter = Limiter(key_func=get_remote_address)
 @router.post("/image")
 @limiter.limit(f"{settings.RATE_LIMIT_UPLOADS}/minute")
 async def upload_image(
+    request: Request,
     file: UploadFile = File(...),
     user_id: UUID = Depends(get_current_user_id),
     farm_id: Optional[UUID] = None,
     generate_thumbnails: bool = True,
     db=Depends(get_db),
-    rate_limiter=Depends(limiter)
 ):
     """
     Upload a single image for plant disease detection

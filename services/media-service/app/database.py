@@ -73,7 +73,7 @@ class MediaFile(Base):
     
     # Additional info
     tags = Column(JSON, default=list)
-    metadata = Column(JSON, default=dict)
+    metadata_ = Column("metadata", JSON, default=dict)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

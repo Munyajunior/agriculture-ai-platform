@@ -4,6 +4,7 @@
 import io
 import os
 import hashlib
+import json
 from datetime import datetime, timedelta
 from typing import Optional, BinaryIO, Dict, Any, Tuple
 from pathlib import Path
@@ -13,10 +14,9 @@ import logging
 
 from PIL import Image
 import aiofiles
-import aiobotocore.session
 from botocore.exceptions import ClientError
 
-from ..config import settings
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,14 @@ class StorageManager:
     
     async def _init_s3_client(self):
         """Initialize S3-compatible client"""
+        try:
+            import aiobotocore.session
+        except ImportError as exc:
+            raise RuntimeError(
+                "aiobotocore is required for minio/s3/r2 storage. "
+                "Use STORAGE_TYPE=local or install a compatible aiobotocore/botocore pair."
+            ) from exc
+
         session = aiobotocore.session.get_session()
         
         # Configure endpoint based on storage type

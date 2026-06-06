@@ -3,7 +3,7 @@
 
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, validator
+from pydantic import Field, field_validator, validator
 
 
 class Settings(BaseSettings):
@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     # Rate limiting
     RATE_LIMIT_UPLOADS: int = Field(default=50)  # per minute
     RATE_LIMIT_DOWNLOADS: int = Field(default=200)  # per minute
+
+    @field_validator("DEBUG", mode="before")
+    def parse_debug(cls, v) -> bool:
+        if isinstance(v, str):
+            return v.strip().lower() in {"1", "true", "yes", "on", "debug", "development"}
+        return bool(v)
     
     @validator("STORAGE_TYPE")
     def validate_storage_type(cls, v):
