@@ -19,16 +19,21 @@ logger = logging.getLogger(__name__)
 class ModelExporter:
     """Export PyTorch models to ONNX format"""
     
-    def __init__(self, model_path: Path, num_classes: int = 15):
+    def __init__(self, model_path: Path, num_classes: int | None = None):
         self.model_path = model_path
         self.num_classes = num_classes
         self.model = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.checkpoint = None
         
     def load_model(self):
         """Load PyTorch model"""
         import torchvision.models as models
         
+        self.checkpoint = torch.load(self.model_path, map_location=self.device)
+        if self.num_classes is None:
+            self.num_classes = int(self.checkpoint.get("num_classes", 15))
+
         # Create model architecture
         self.model = models.mobilenet_v3_large(pretrained=False)
         in_features = self.model.classifier[-1].in_features
@@ -40,8 +45,7 @@ class ModelExporter:
         )
         
         # Load weights
-        checkpoint = torch.load(self.model_path, map_location=self.device)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model.load_state_dict(self.checkpoint['model_state_dict'])
         self.model.eval()
         self.model.to(self.device)
         
@@ -128,7 +132,7 @@ def main():
     parser = argparse.ArgumentParser(description="Export PyTorch model to ONNX")
     parser.add_argument("--model_path", type=str, required=True, help="Path to PyTorch model")
     parser.add_argument("--output_path", type=str, default="./model.onnx", help="Output ONNX path")
-    parser.add_argument("--num_classes", type=int, default=15, help="Number of classes")
+    parser.add_argument("--num_classes", type=int, default=None, help="Number of classes; defaults to checkpoint metadata")
     parser.add_argument("--quantize", action="store_true", help="Quantize model")
     
     args = parser.parse_args()

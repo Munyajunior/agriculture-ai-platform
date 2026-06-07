@@ -1,0 +1,99 @@
+{
+  "version": "plant-disease-v1",
+  "description": "Starter multi-source plant disease dataset plan for PlantVillage, PlantDoc, Plant Pathology 2021, and Cassava Leaf Disease.",
+  "sources": [
+    {
+      "name": "plantvillage",
+      "enabled": true,
+      "type": "image_folder",
+      "path": "plantvillage",
+      "candidate_paths": [
+        "plantvillage/color",
+        "plantvillage/PlantVillage",
+        "plantvillage/plantvillage",
+        "plantvillage",
+        "PlantVillage/color",
+        "PlantVillage/PlantVillage",
+        "PlantVillage"
+      ],
+      "notes": "Path is relative to the dataset root. Kaggle PlantVillage folders usually contain class directories such as Tomato___Late_blight."
+    },
+    {
+      "name": "plantdoc",
+      "enabled": true,
+      "type": "yolo_detection",
+      "path": "plantdoc",
+      "yaml_path": "plantdoc/data.yaml",
+      "splits": ["train", "valid", "test"],
+      "multi_label_strategy": "composite",
+      "notes": "Path is relative to the dataset root. Roboflow/YOLO PlantDoc export with train/valid/test images and labels."
+    },
+    {
+      "name": "plant_pathology_2021",
+      "enabled": false,
+      "type": "csv_labels",
+      "csv_path": "plant-pathology-2021/train.csv",
+      "images_dir": "plant-pathology-2021/train_images",
+      "image_column": "image",
+      "label_column": "labels",
+      "multi_label_strategy": "composite",
+      "notes": "Paths are relative to the dataset root. Apple field dataset. Multi-label rows are converted to composite labels for the current single-label trainer."
+    },
+    {
+      "name": "cassava_leaf_disease",
+      "enabled": true,
+      "type": "csv_labels",
+      "csv_path": "cassava-leaf-disease-classification/train.csv",
+      "images_dir": "cassava-leaf-disease-classification/train_images",
+      "candidate_csv_paths": [
+        "cassava-leaf-disease-classification/train.csv",
+        "cassava/train.csv",
+        "Cassava/train.csv"
+      ],
+      "candidate_images_dirs": [
+        "cassava-leaf-disease-classification/train_images",
+        "cassava/train_images",
+        "Cassava/train_images"
+      ],
+      "image_column": "image_id",
+      "label_column": "label",
+      "label_map": {
+        "0": "cassava_bacterial_blight",
+        "1": "cassava_brown_streak_disease",
+        "2": "cassava_green_mottle",
+        "3": "cassava_mosaic_disease",
+        "4": "cassava_healthy"
+      },
+      "notes": "Paths are relative to the dataset root. Kaggle cassava challenge labels are numeric; this map makes them human-readable."
+    },
+    {
+      "name": "plant_leaf_disease",
+      "enabled": true,
+      "type": "image_folder",
+      "path": "plant-leaf-disease",
+      "candidate_paths": [
+        "plant-leaf-disease",
+        "plant_leaf_disease",
+        "Plant Leaf Disease",
+        "Plant_leaf_diseases_dataset_without_augmentation",
+        "Plant_leaf_diseases_dataset_without_augmentation/Plant_leave_diseases_dataset_without_augmentation"
+      ],
+      "notes": "ImageFolder-style plant leaf disease dataset without augmentation."
+    },
+    {
+      "name": "plant_leaf_disease_augmented",
+      "enabled": true,
+      "type": "image_folder",
+      "path": "plant-leaf-disease-augmented",
+      "candidate_paths": [
+        "plant-leaf-disease-augmented",
+        "plant_leaf_disease_augmented",
+        "Plant Leaf Disease Augmented",
+        "New Plant Diseases Dataset(Augmented)",
+        "New Plant Diseases Dataset(Augmented)/New Plant Diseases Dataset(Augmented)/train",
+        "New Plant Diseases Dataset(Augmented)/train"
+      ],
+      "notes": "ImageFolder-style augmented plant disease dataset. Keep source metadata so augmented results can be evaluated separately."
+    }
+  ]
+}

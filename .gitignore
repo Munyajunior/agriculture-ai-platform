@@ -6,3 +6,10 @@ __pycache__/
 
 .env
 *.env
+
+# Local prepared datasets and trained artifacts
+data/processed/
+models/
+*.pth
+*.onnx
+datasets/raw/*

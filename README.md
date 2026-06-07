@@ -38,6 +38,10 @@ Focused backend references:
 - [Backend Architecture](docs/backend/ARCHITECTURE.md)
 - [Backend Deployment Guide](docs/backend/DEPLOYMENT.md)
 
+Training reference:
+
+- [Model Training](docs/training/MODEL_TRAINING.md)
+
 ## Common Commands
 
 Start local infrastructure and run the backend smoke test:
@@ -66,4 +70,4 @@ uv run python scripts\migration.py list
 
 ## Documentation Scope
 
-The current docs focus on backend services and completed local infrastructure. Frontend, mobile, training pipelines, hardened production operations, and edge-device workflows will be expanded as those parts are completed.
+The current docs focus on backend services, completed local infrastructure, and the first model-training workflow. Frontend, mobile, hardened production operations, and edge-device workflows will be expanded as those parts are completed.

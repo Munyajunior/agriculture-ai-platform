@@ -6,13 +6,15 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 from pathlib import Path
 import json
 from tqdm import tqdm
 import logging
 from datetime import datetime
+import random
+import numpy as np
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,7 +30,9 @@ class PlantDiseaseTrainer:
         learning_rate: float = 0.001,
         batch_size: int = 32,
         epochs: int = 50,
-        device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        class_names: list[str] | None = None,
+        dataset_metadata: dict | None = None,
     ):
         self.model_name = model_name
         self.num_classes = num_classes
@@ -36,6 +40,8 @@ class PlantDiseaseTrainer:
         self.batch_size = batch_size
         self.epochs = epochs
         self.device = device
+        self.class_names = class_names or []
+        self.dataset_metadata = dataset_metadata or {}
         
         # Initialize model
         self.model = self._create_model()
@@ -49,7 +55,13 @@ class PlantDiseaseTrainer:
         """Create model architecture"""
         if self.model_name == "mobilenetv3":
             import torchvision.models as models
-            model = models.mobilenet_v3_large(pretrained=True)
+            try:
+                weights = models.MobileNet_V3_Large_Weights.DEFAULT
+                model = models.mobilenet_v3_large(weights=weights)
+            except Exception as exc:
+                logger.warning("Could not load pretrained MobileNetV3 weights: %s", exc)
+                logger.warning("Falling back to randomly initialized MobileNetV3 weights.")
+                model = models.mobilenet_v3_large(weights=None)
             
             # Replace classifier
             in_features = model.classifier[-1].in_features
@@ -153,16 +165,20 @@ class PlantDiseaseTrainer:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'accuracy': accuracy,
             'model_name': self.model_name,
-            'num_classes': self.num_classes
+            'num_classes': self.num_classes,
+            'class_names': self.class_names,
+            'dataset_metadata': self.dataset_metadata,
         }, path)
         
         # Save metadata
         metadata = {
             'model_name': self.model_name,
             'num_classes': self.num_classes,
+            'class_names': self.class_names,
             'accuracy': accuracy,
             'epoch': epoch,
-            'training_date': datetime.utcnow().isoformat()
+            'training_date': datetime.utcnow().isoformat(),
+            'dataset_metadata': self.dataset_metadata,
         }
         
         with open(path.parent / "metadata.json", 'w') as f:
@@ -177,8 +193,16 @@ def main():
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
     parser.add_argument("--output_dir", type=str, default="./models", help="Output directory")
+    parser.add_argument("--num_workers", type=int, default=4, help="DataLoader worker count")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
     
     args = parser.parse_args()
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
     
     # Data transforms
     train_transform = transforms.Compose([
@@ -211,18 +235,24 @@ def main():
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=4
+        num_workers=args.num_workers
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=4
+        num_workers=args.num_workers
     )
     
     logger.info(f"Training samples: {len(train_dataset)}")
     logger.info(f"Validation samples: {len(val_dataset)}")
     logger.info(f"Number of classes: {len(train_dataset.classes)}")
+
+    metadata_path = Path(args.data_dir) / "metadata" / "dataset_card.json"
+    dataset_metadata = {}
+    if metadata_path.exists():
+        with metadata_path.open("r", encoding="utf-8") as file:
+            dataset_metadata = json.load(file)
     
     # Initialize trainer
     trainer = PlantDiseaseTrainer(
@@ -230,7 +260,9 @@ def main():
         num_classes=len(train_dataset.classes),
         learning_rate=args.lr,
         batch_size=args.batch_size,
-        epochs=args.epochs
+        epochs=args.epochs,
+        class_names=train_dataset.classes,
+        dataset_metadata=dataset_metadata,
     )
     
     # Train model
