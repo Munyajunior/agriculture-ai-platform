@@ -20,10 +20,11 @@ class PlantDiseaseModel(nn.Module):
         super().__init__()
         
         # Use MobileNetV3 Large as backbone
-        self.backbone = models.mobilenet_v3_large(pretrained=pretrained)
+        weights = models.MobileNet_V3_Large_Weights.DEFAULT if pretrained else None
+        self.backbone = models.mobilenet_v3_large(weights=weights)
         
-        # Get the number of features from the classifier
-        in_features = self.backbone.classifier[-1].in_features
+        # MobileNetV3 classifier input is the first Linear layer's input.
+        in_features = self.backbone.classifier[0].in_features
         
         # Replace classifier for our number of classes
         self.backbone.classifier = nn.Sequential(
@@ -69,13 +70,15 @@ class ModelFactory:
             )
         elif model_type == "resnet50":
             # Future support for ResNet50
-            model = models.resnet50(pretrained=pretrained)
+            weights = models.ResNet50_Weights.DEFAULT if pretrained else None
+            model = models.resnet50(weights=weights)
             in_features = model.fc.in_features
             model.fc = nn.Linear(in_features, num_classes)
             return model
         elif model_type == "efficientnet":
             # Future support for EfficientNet
-            model = models.efficientnet_b0(pretrained=pretrained)
+            weights = models.EfficientNet_B0_Weights.DEFAULT if pretrained else None
+            model = models.efficientnet_b0(weights=weights)
             in_features = model.classifier[-1].in_features
             model.classifier[-1] = nn.Linear(in_features, num_classes)
             return model

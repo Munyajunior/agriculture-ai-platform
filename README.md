@@ -41,6 +41,8 @@ Focused backend references:
 Training reference:
 
 - [Model Training](docs/training/MODEL_TRAINING.md)
+- [Project Runbook](docs/RUNBOOK.md)
+- [Plant Camera Demo](docs/demo/PLANT_CAMERA_DEMO.md)
 
 ## Common Commands
 
