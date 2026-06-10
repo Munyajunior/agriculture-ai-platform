@@ -28,6 +28,41 @@ from typing import Any
 
 LOGGER = logging.getLogger("prepare_datasets")
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+SPLIT_DIR_NAMES = {"train", "valid", "val", "test"}
+
+CANONICAL_LABEL_ALIASES = {
+    "apple_leaf": "apple_healthy",
+    "apple_rust_leaf": "apple_cedar_apple_rust",
+    "apple_scab_leaf": "apple_apple_scab",
+    "bell_pepper_leaf": "pepper_bell_healthy",
+    "bell_pepper_leaf_spot": "pepper_bell_bacterial_spot",
+    "blueberry_leaf": "blueberry_healthy",
+    "cherry_leaf": "cherry_healthy",
+    "cherry_including_sour_healthy": "cherry_healthy",
+    "cherry_including_sour_powdery_mildew": "cherry_powdery_mildew",
+    "corn_gray_leaf_spot": "corn_cercospora_leaf_spot_gray_leaf_spot",
+    "corn_leaf_blight": "corn_northern_leaf_blight",
+    "corn_rust_leaf": "corn_common_rust",
+    "grape_leaf": "grape_healthy",
+    "grape_leaf_black_rot": "grape_black_rot",
+    "peach_leaf": "peach_healthy",
+    "potato_leaf": "potato_healthy",
+    "potato_leaf_early_blight": "potato_early_blight",
+    "potato_leaf_late_blight": "potato_late_blight",
+    "raspberry_leaf": "raspberry_healthy",
+    "soyabean_leaf": "soybean_healthy",
+    "soybean_leaf": "soybean_healthy",
+    "squash_powdery_mildew_leaf": "squash_powdery_mildew",
+    "strawberry_leaf": "strawberry_healthy",
+    "tomato_early_blight_leaf": "tomato_early_blight",
+    "tomato_leaf": "tomato_healthy",
+    "tomato_leaf_bacterial_spot": "tomato_bacterial_spot",
+    "tomato_leaf_late_blight": "tomato_late_blight",
+    "tomato_leaf_mosaic_virus": "tomato_tomato_mosaic_virus",
+    "tomato_leaf_yellow_virus": "tomato_tomato_yellow_leaf_curl_virus",
+    "tomato_mold_leaf": "tomato_leaf_mold",
+    "tomato_two_spotted_spider_mites_leaf": "tomato_spider_mites_two_spotted_spider_mite",
+}
 
 
 @dataclass(frozen=True)
@@ -50,6 +85,9 @@ def normalize_label(label: str) -> str:
     normalized = re.sub(r"[^a-z0-9_]+", "", normalized)
     normalized = re.sub(r"_+", "_", normalized)
     normalized = normalized.strip("_")
+    normalized = normalized.replace("corn_maize_", "corn_")
+    normalized = normalized.replace("tomato_tomato_yellowleaf_curl_virus", "tomato_tomato_yellow_leaf_curl_virus")
+    normalized = CANONICAL_LABEL_ALIASES.get(normalized, normalized)
     return normalized or "unknown"
 
 
@@ -66,19 +104,76 @@ def image_files(root: Path) -> list[Path]:
     ]
 
 
+def direct_image_count(root: Path) -> int:
+    return sum(
+        1
+        for path in root.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+    )
+
+
+def find_image_folder_root(source_root: Path) -> Path:
+    """Find a directory whose direct children are class folders with images."""
+
+    if has_class_dirs(source_root):
+        return source_root
+
+    for split_name in ("train", "Train", "training", "Training"):
+        split_root = source_root / split_name
+        if split_root.exists() and has_class_dirs(split_root):
+            return split_root
+
+    queue = [source_root]
+    for _ in range(3):
+        next_queue: list[Path] = []
+        for root in queue:
+            try:
+                children = [path for path in root.iterdir() if path.is_dir()]
+            except OSError:
+                continue
+            for child in children:
+                if child.name.lower() in SPLIT_DIR_NAMES:
+                    if has_class_dirs(child):
+                        return child
+                    continue
+                if has_class_dirs(child):
+                    return child
+                next_queue.append(child)
+        queue = next_queue
+
+    return source_root
+
+
+def has_class_dirs(root: Path) -> bool:
+    try:
+        class_dirs = [path for path in root.iterdir() if path.is_dir()]
+    except OSError:
+        return False
+    if not class_dirs:
+        return False
+    return any(direct_image_count(class_dir) > 0 for class_dir in class_dirs)
+
+
 def collect_image_folder(source: dict[str, Any], raw_root: Path) -> list[Sample]:
     source_root = first_existing_path(raw_root, source.get("candidate_paths", [source["path"]]))
     if not source_root.exists():
         LOGGER.warning("Skipping %s: %s does not exist", source["name"], source_root)
         return []
+    source_root = find_image_folder_root(source_root)
 
     samples: list[Sample] = []
-    class_dirs = [path for path in source_root.iterdir() if path.is_dir()]
+    class_dirs = [
+        path
+        for path in source_root.iterdir()
+        if path.is_dir() and path.name.lower() not in SPLIT_DIR_NAMES
+    ]
     if not class_dirs:
         LOGGER.warning("Skipping %s: no class directories found in %s", source["name"], source_root)
         return []
 
     for class_dir in class_dirs:
+        if direct_image_count(class_dir) == 0:
+            continue
         raw_label = class_dir.name
         label = normalize_label(source.get("label_aliases", {}).get(raw_label, raw_label))
         for image_path in image_files(class_dir):
@@ -173,8 +268,11 @@ def image_label_path(image_path: Path) -> Path:
 
 
 def collect_yolo_detection(source: dict[str, Any], raw_root: Path) -> list[Sample]:
-    source_root = raw_root / source["path"]
-    yaml_path = raw_root / source.get("yaml_path", f"{source['path']}/data.yaml")
+    source_root = first_existing_path(raw_root, source.get("candidate_paths", [source["path"]]))
+    yaml_path = first_existing_path(
+        raw_root,
+        source.get("candidate_yaml_paths", [source.get("yaml_path", f"{source['path']}/data.yaml")]),
+    )
     if not source_root.exists():
         LOGGER.warning("Skipping %s: %s does not exist", source["name"], source_root)
         return []
@@ -198,28 +296,35 @@ def collect_yolo_detection(source: dict[str, Any], raw_root: Path) -> list[Sampl
             if not label_path.exists():
                 continue
 
-            class_ids: list[int] = []
+            detections: list[tuple[int, float]] = []
             with label_path.open("r", encoding="utf-8") as file:
                 for line in file:
                     parts = line.split()
                     if not parts:
                         continue
                     try:
-                        class_ids.append(int(float(parts[0])))
+                        class_id = int(float(parts[0]))
+                        width = float(parts[3]) if len(parts) > 3 else 1.0
+                        height = float(parts[4]) if len(parts) > 4 else 1.0
+                        detections.append((class_id, width * height))
                     except ValueError:
                         continue
 
             labels = sorted(
                 {
                     class_names[class_id]
-                    for class_id in class_ids
+                    for class_id, _area in detections
                     if 0 <= class_id < len(class_names)
                 }
             )
             if not labels:
                 continue
 
-            if len(labels) > 1 and source.get("multi_label_strategy") == "composite":
+            if len(labels) > 1 and source.get("multi_label_strategy") == "largest":
+                largest_class_id = max(detections, key=lambda item: item[1])[0]
+                raw_label = class_names[largest_class_id]
+                label = normalize_label(raw_label)
+            elif len(labels) > 1 and source.get("multi_label_strategy") == "composite":
                 raw_label = " ".join(labels)
                 label = "__".join(normalize_label(label_part) for label_part in labels)
             else:
@@ -417,7 +522,7 @@ def main() -> None:
         default=Path("datasets/raw"),
         help="Folder that contains the downloaded dataset files. Defaults to ./datasets/raw.",
     )
-    parser.add_argument("--output-dir", type=Path, default=Path("data/processed/plant-disease-v1"))
+    parser.add_argument("--output-dir", type=Path, default=Path("data/processed/plant-disease-v2"))
     parser.add_argument("--config", type=Path, default=Path("scripts/training/dataset_sources.json"))
     parser.add_argument("--val-ratio", type=float, default=0.15)
     parser.add_argument("--test-ratio", type=float, default=0.10)

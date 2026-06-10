@@ -1,5 +1,5 @@
 {
-  "version": "plant-disease-v1",
+  "version": "plant-disease-v2",
   "description": "Starter multi-source plant disease dataset plan for PlantVillage, PlantDoc, Plant Pathology 2021, and Cassava Leaf Disease.",
   "sources": [
     {
@@ -8,13 +8,8 @@
       "type": "image_folder",
       "path": "plantvillage",
       "candidate_paths": [
-        "plantvillage/color",
-        "plantvillage/PlantVillage",
-        "plantvillage/plantvillage",
-        "plantvillage",
         "PlantVillage/color",
-        "PlantVillage/PlantVillage",
-        "PlantVillage"
+        "PlantVillage/PlantVillage/color"
       ],
       "notes": "Path is relative to the dataset root. Kaggle PlantVillage folders usually contain class directories such as Tomato___Late_blight."
     },
@@ -24,8 +19,16 @@
       "type": "yolo_detection",
       "path": "plantdoc",
       "yaml_path": "plantdoc/data.yaml",
+      "candidate_paths": [
+        "plantdoc",
+        "PlantDoc"
+      ],
+      "candidate_yaml_paths": [
+        "plantdoc/data.yaml",
+        "PlantDoc/data.yaml"
+      ],
       "splits": ["train", "valid", "test"],
-      "multi_label_strategy": "composite",
+      "multi_label_strategy": "largest",
       "notes": "Path is relative to the dataset root. Roboflow/YOLO PlantDoc export with train/valid/test images and labels."
     },
     {
@@ -42,7 +45,16 @@
     {
       "name": "cassava_leaf_disease",
       "enabled": true,
-      "type": "csv_labels",
+      "type": "image_folder",
+      "path": "icassava/data",
+      "candidate_paths": [
+        "icassava/data",
+        "icassava",
+        "cassava/data",
+        "cassava",
+        "Cassava/data",
+        "Cassava"
+      ],
       "csv_path": "cassava-leaf-disease-classification/train.csv",
       "images_dir": "cassava-leaf-disease-classification/train_images",
       "candidate_csv_paths": [
@@ -64,7 +76,7 @@
         "3": "cassava_mosaic_disease",
         "4": "cassava_healthy"
       },
-      "notes": "Paths are relative to the dataset root. Kaggle cassava challenge labels are numeric; this map makes them human-readable."
+      "notes": "Paths are relative to the dataset root. Current local iCassava copy is ImageFolder-style under icassava/data."
     },
     {
       "name": "plant_leaf_disease",
@@ -89,6 +101,8 @@
         "plant-leaf-disease-augmented",
         "plant_leaf_disease_augmented",
         "Plant Leaf Disease Augmented",
+        "Plant_leaf_diseases_dataset_with_augmentation",
+        "Plant_leaf_diseases_dataset_with_augmentation/Plant_leave_diseases_dataset_with_augmentation",
         "New Plant Diseases Dataset(Augmented)",
         "New Plant Diseases Dataset(Augmented)/New Plant Diseases Dataset(Augmented)/train",
         "New Plant Diseases Dataset(Augmented)/train"

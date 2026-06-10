@@ -12,12 +12,45 @@ from pathlib import Path
 import json
 from tqdm import tqdm
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 import random
 import numpy as np
 
+try:
+    from model_utils import build_mobilenetv3_classifier
+except ModuleNotFoundError:
+    from scripts.training.model_utils import build_mobilenetv3_classifier
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def resolve_device(requested_device: str) -> str:
+    """Resolve and validate training device selection."""
+
+    if requested_device == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if requested_device == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA was requested, but PyTorch cannot use CUDA. "
+            f"Installed torch build: {torch.__version__}, torch.version.cuda={torch.version.cuda!r}."
+        )
+    return requested_device
+
+
+def log_device_info(device: str) -> None:
+    logger.info("Torch version: %s", torch.__version__)
+    logger.info("Torch CUDA version: %s", torch.version.cuda)
+    logger.info("CUDA available: %s", torch.cuda.is_available())
+    logger.info("Selected device: %s", device)
+    if torch.cuda.is_available():
+        for index in range(torch.cuda.device_count()):
+            logger.info(
+                "CUDA device %s: %s, capability=%s",
+                index,
+                torch.cuda.get_device_name(index),
+                torch.cuda.get_device_capability(index),
+            )
 
 
 class PlantDiseaseTrainer:
@@ -54,23 +87,12 @@ class PlantDiseaseTrainer:
     def _create_model(self):
         """Create model architecture"""
         if self.model_name == "mobilenetv3":
-            import torchvision.models as models
             try:
-                weights = models.MobileNet_V3_Large_Weights.DEFAULT
-                model = models.mobilenet_v3_large(weights=weights)
+                model = build_mobilenetv3_classifier(self.num_classes, pretrained=True)
             except Exception as exc:
                 logger.warning("Could not load pretrained MobileNetV3 weights: %s", exc)
                 logger.warning("Falling back to randomly initialized MobileNetV3 weights.")
-                model = models.mobilenet_v3_large(weights=None)
-            
-            # Replace classifier
-            in_features = model.classifier[-1].in_features
-            model.classifier = nn.Sequential(
-                nn.Linear(in_features, 1024),
-                nn.Hardswish(),
-                nn.Dropout(0.2),
-                nn.Linear(1024, self.num_classes)
-            )
+                model = build_mobilenetv3_classifier(self.num_classes, pretrained=False)
             return model.to(self.device)
         else:
             raise ValueError(f"Unsupported model: {self.model_name}")
@@ -177,7 +199,7 @@ class PlantDiseaseTrainer:
             'class_names': self.class_names,
             'accuracy': accuracy,
             'epoch': epoch,
-            'training_date': datetime.utcnow().isoformat(),
+            'training_date': datetime.now(UTC).isoformat(),
             'dataset_metadata': self.dataset_metadata,
         }
         
@@ -195,6 +217,7 @@ def main():
     parser.add_argument("--output_dir", type=str, default="./models", help="Output directory")
     parser.add_argument("--num_workers", type=int, default=4, help="DataLoader worker count")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto", help="Training device")
     
     args = parser.parse_args()
 
@@ -203,6 +226,9 @@ def main():
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
+
+    device = resolve_device(args.device)
+    log_device_info(device)
     
     # Data transforms
     train_transform = transforms.Compose([
@@ -261,6 +287,7 @@ def main():
         learning_rate=args.lr,
         batch_size=args.batch_size,
         epochs=args.epochs,
+        device=device,
         class_names=train_dataset.classes,
         dataset_metadata=dataset_metadata,
     )
