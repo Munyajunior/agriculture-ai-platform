@@ -15,6 +15,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     
     # Public routes that don't require authentication
     PUBLIC_PATHS: Set[str] = {
+        "/",
         "/health",
         "/ready",
         "/metrics",

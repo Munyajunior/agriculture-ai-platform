@@ -423,8 +423,8 @@ Important files:
 | Script | Purpose |
 | --- | --- |
 | `scripts/setup_infrastructure.ps1` | Start/create PostgreSQL, Redis, MinIO; repair DB password; create MinIO buckets; optionally start backend containers. |
-| `scripts/run_backend_local.ps1` | Run infrastructure setup, then run smoke test. |
-| `scripts/smoke_backend.py` | Start each service locally, call `/health`, terminate service, report output. |
+| `scripts/run_backend_local.ps1` | Run infrastructure setup, then keep local backend services running for browser/API use. |
+| `scripts/smoke_backend.py` | Start each service locally, call `/health`, terminate service, and report output. Use `--keep-alive` to keep all services running until `Ctrl+C`. |
 | `scripts/migration.py` | Manage SQLAlchemy metadata operations and Alembic workflows. |
 
 ## Infrastructure Files
@@ -457,7 +457,7 @@ For a non-engineer:
 For a developer:
 
 1. Start infrastructure with `scripts/setup_infrastructure.ps1`.
-2. Run `scripts/smoke_backend.py`.
+2. Run `scripts/smoke_backend.py`, or run `scripts/run_backend_local.ps1` when you need the services to stay available.
 3. Use API docs at `http://127.0.0.1:<port>/docs` or `/api/docs`.
 4. Use `scripts/migration.py` before and after model/table changes.
 5. Run `git diff --check` and smoke test before committing backend changes.

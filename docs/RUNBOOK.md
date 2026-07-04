@@ -408,11 +408,13 @@ Build backend images, then start services:
 powershell -ExecutionPolicy Bypass -File scripts\setup_infrastructure.ps1 -Services -Build
 ```
 
-One-command local backend check:
+One-command local backend run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run_backend_local.ps1
 ```
+
+Keep that terminal open while using the API in a browser. It starts infrastructure, checks each backend service, then keeps ports `8000` through `8006` running until `Ctrl+C`.
 
 Expected infrastructure ports:
 
@@ -492,6 +494,8 @@ Run backend smoke test:
 ```powershell
 uv run python scripts\smoke_backend.py
 ```
+
+The smoke test is intentionally short-lived. It starts each service, checks `/health`, then stops it. Use `scripts\run_backend_local.ps1` or `uv run python scripts\smoke_backend.py --keep-alive` when you want the backend to remain available.
 
 Check service health endpoints:
 

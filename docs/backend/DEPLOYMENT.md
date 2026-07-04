@@ -67,13 +67,13 @@ Run the backend smoke test:
 uv run python scripts\smoke_backend.py
 ```
 
-Or run both with one command:
+Run infrastructure and keep the local backend services available for browser/API use:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run_backend_local.ps1
 ```
 
-The smoke script starts each service, waits for `/health`, reports success or failure, and shuts the service down before moving to the next one.
+The smoke script starts each service, waits for `/health`, reports success or failure, and shuts the service down before moving to the next one. The local backend runner uses `smoke_backend.py --keep-alive`, so it keeps ports `8000` through `8006` open until you press `Ctrl+C`.
 
 ## Docker Compose Deployment
 

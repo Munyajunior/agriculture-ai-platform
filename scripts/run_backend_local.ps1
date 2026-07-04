@@ -8,4 +8,4 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-uv run python scripts\smoke_backend.py
+uv run python scripts\smoke_backend.py --keep-alive

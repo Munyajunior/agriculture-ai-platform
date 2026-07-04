@@ -89,6 +89,18 @@ instrumentator.instrument(app).expose(app, endpoint="/metrics")
 # Include routers
 app.include_router(api_router, prefix="/api/v1")
 
+@app.get("/")
+async def root():
+    """Root endpoint with useful local development links."""
+    return {
+        "service": "api-gateway",
+        "status": "running",
+        "health": "/health",
+        "ready": "/ready",
+        "docs": "/api/docs",
+        "api": "/api/v1",
+    }
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

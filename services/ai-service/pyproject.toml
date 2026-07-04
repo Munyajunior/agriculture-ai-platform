@@ -17,6 +17,7 @@ dependencies = [
     "onnxscript>=0.7.0",
     "opencv-python>=4.13.0.92",
     "pillow>=12.2.0",
+    "prometheus-fastapi-instrumentator>=8.0.0",
     "redis>=8.0.0",
     "sqlalchemy>=2.0.50",
     "torch>=2.10.0",
