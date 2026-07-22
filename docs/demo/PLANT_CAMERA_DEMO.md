@@ -13,8 +13,8 @@ This is the first local desktop/terminal interface for showing the trained model
 The current demo uses the trained v1 quantized model:
 
 ```text
-models/plant-disease-v1/plant_disease_mobilenetv3.quant.onnx
-models/plant-disease-v1/plant_disease_mobilenetv3.export.json
+models/plant-disease-v2/plant_disease_mobilenetv3.quant.onnx
+models/plant-disease-v2/plant_disease_mobilenetv3.export.json
 ```
 
 After v2 is trained/exported, pass the v2 model and metadata paths with `--model` and `--metadata`.
@@ -22,7 +22,7 @@ After v2 is trained/exported, pass the v2 model and metadata paths with `--model
 ## Camera Demo
 
 ```powershell
-uv run --package ai-service python scripts\demo\plant_camera_demo.py
+uv run --package ai-service python scripts/demo/plant_camera_demo.py
 ```
 
 Controls:

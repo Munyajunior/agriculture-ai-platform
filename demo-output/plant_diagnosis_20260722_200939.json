@@ -1,0 +1,53 @@
+{
+  "label": "background_without_leaves",
+  "crop": "Background",
+  "condition": "Without Leaves",
+  "confidence": 0.955649197101593,
+  "inference_time_ms": 247.13249999990694,
+  "top_predictions": [
+    {
+      "label": "background_without_leaves",
+      "display_label": "Background Without Leaves",
+      "confidence": 0.955649197101593
+    },
+    {
+      "label": "corn_leaf_blight",
+      "display_label": "Corn Leaf Blight",
+      "confidence": 0.010237772017717361
+    },
+    {
+      "label": "tomato_leaf_late_blight",
+      "display_label": "Tomato Leaf Late Blight",
+      "confidence": 0.00977649912238121
+    },
+    {
+      "label": "corn_rust_leaf",
+      "display_label": "Corn Rust Leaf",
+      "confidence": 0.004055016208440065
+    },
+    {
+      "label": "soyabean_leaf",
+      "display_label": "Soyabean Leaf",
+      "confidence": 0.003476013895124197
+    }
+  ],
+  "recommendations": {
+    "summary": [
+      "The model detected a possible plant health issue."
+    ],
+    "treatment": [
+      "Compare symptoms with local crop guides before applying chemicals."
+    ],
+    "control": [
+      "Isolate or mark affected plants and monitor disease spread."
+    ],
+    "prevention": [
+      "Use clean tools, improve airflow, and avoid unnecessary leaf wetness."
+    ],
+    "caution": [
+      "Use local extension guidance before applying pesticides or removing plants."
+    ]
+  },
+  "image_path": "demo-output\\capture_20260722_200938.jpg",
+  "created_at": "2026-07-22T20:09:39.158137+00:00"
+}
