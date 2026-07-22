@@ -1,0 +1,56 @@
+{
+  "label": "apple_rust_leaf",
+  "crop": "Apple",
+  "condition": "Rust Leaf",
+  "confidence": 0.2579314410686493,
+  "inference_time_ms": 196.54330000048503,
+  "top_predictions": [
+    {
+      "label": "apple_rust_leaf",
+      "display_label": "Apple Rust Leaf",
+      "confidence": 0.2579314410686493
+    },
+    {
+      "label": "apple_scab_leaf",
+      "display_label": "Apple Scab Leaf",
+      "confidence": 0.15701062977313995
+    },
+    {
+      "label": "corn_rust_leaf",
+      "display_label": "Corn Rust Leaf",
+      "confidence": 0.14913633465766907
+    },
+    {
+      "label": "tomato_leaf_late_blight",
+      "display_label": "Tomato Leaf Late Blight",
+      "confidence": 0.09500706195831299
+    },
+    {
+      "label": "corn_leaf_blight",
+      "display_label": "Corn Leaf Blight",
+      "confidence": 0.06542801856994629
+    }
+  ],
+  "recommendations": {
+    "summary": [
+      "Likely fungal disease symptoms were detected."
+    ],
+    "treatment": [
+      "Remove infected leaves and destroy them away from the field.",
+      "Apply a crop-appropriate fungicide if disease pressure is increasing."
+    ],
+    "control": [
+      "Improve spacing, pruning, and airflow around plants.",
+      "Water at soil level and avoid wetting foliage."
+    ],
+    "prevention": [
+      "Rotate crops and avoid planting susceptible crops in the same location repeatedly.",
+      "Sanitize stakes, trays, and tools between seasons."
+    ],
+    "caution": [
+      "Prediction confidence is low. Capture a closer, sharper leaf image and confirm with an agronomist."
+    ]
+  },
+  "image_path": "data\\processed\\plant-disease-v1\\test\\apple_rust_leaf\\plantdoc__image_1038__53f0dadbfd0c.jpg",
+  "created_at": "2026-07-04T19:01:46.573522+00:00"
+}

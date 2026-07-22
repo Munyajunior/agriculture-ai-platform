@@ -20,6 +20,7 @@ from ...core.cache import CacheManager
 from ...database import get_db, MediaFile, UploadSession
 from ...config import settings
 from ...dependencies import verify_token, get_current_user_id
+from ...workers.thumbnail_worker import thumbnail_worker, ThumbnailJob
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -68,13 +69,14 @@ async def upload_image(
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         safe_filename = f"{timestamp}_{file_hash}_{file.filename.replace(' ', '_')}"
         
-        # Process image
+        # Process image. Thumbnails are generated asynchronously by the
+        # background worker (see below), so skip inline thumbnail generation.
         processed = await image_processor.process_upload(
             file_data,
             safe_filename,
-            generate_thumbnails
+            generate_thumbnails=False
         )
-        
+
         # Upload original to storage
         original_path = f"originals/{user_id}/{safe_filename}"
         upload_result = await storage_manager.upload_file(
@@ -87,19 +89,9 @@ async def upload_image(
                 'farm_id': str(farm_id) if farm_id else ''
             }
         )
-        
-        # Upload thumbnails
-        thumbnail_paths = {}
-        for size, thumb_data in processed['thumbnails'].items():
-            thumb_path = f"thumbnails/{user_id}/{size}/{safe_filename}"
-            await storage_manager.upload_file(
-                thumb_data,
-                thumb_path,
-                content_type='image/jpeg'
-            )
-            thumbnail_paths[size] = thumb_path
-        
-        # Save to database
+
+        # Save to database. Thumbnails are filled in by the worker; until then
+        # thumbnail_paths is empty and is_processed reflects the pending state.
         media_file = MediaFile(
             user_id=user_id,
             filename=safe_filename,
@@ -107,25 +99,38 @@ async def upload_image(
             file_size=file_size,
             mime_type=file.content_type,
             storage_path=original_path,
-            thumbnail_paths=thumbnail_paths,
+            thumbnail_paths={},
             public_url=upload_result.get('url'),
             width=processed['width'],
             height=processed['height'],
             blurhash=processed['blurhash'],
             dominant_color=processed['dominant_color'],
             exif_data=processed['exif_data'],
-            is_processed=True,
-            processed_at=datetime.utcnow(),
+            is_processed=not generate_thumbnails,
+            processed_at=None if generate_thumbnails else datetime.utcnow(),
             metadata={
                 'farm_id': str(farm_id) if farm_id else None,
                 'compression_ratio': processed['compression_ratio'],
                 'quality_score': processed['quality_analysis']['quality_score']
             }
         )
-        
+
         db.add(media_file)
         await db.commit()
         await db.refresh(media_file)
+
+        # Enqueue background thumbnail generation. The worker uploads the
+        # thumbnails and updates MediaFile.thumbnail_paths when finished.
+        if generate_thumbnails:
+            thumbnail_worker.add_job(
+                ThumbnailJob(
+                    media_id=media_file.id,
+                    image_data=processed['optimized_data'],
+                    user_id=str(user_id),
+                    filename=safe_filename,
+                    created_at=datetime.utcnow(),
+                )
+            )
         
         # Cache the file metadata
         await cache_manager.set(
@@ -146,10 +151,11 @@ async def upload_image(
             content={
                 "id": str(media_file.id),
                 "url": media_file.public_url,
+                "thumbnails_pending": generate_thumbnails,
                 "thumbnail_urls": {
-                    size: f"/api/v1/download/thumbnail/{user_id}/{size}/{safe_filename}"
-                    for size in thumbnail_paths
-                },
+                    size: f"/api/v1/download/thumbnail/{user_id}/{f'{size[0]}x{size[1]}'}/{safe_filename}"
+                    for size in settings.THUMBNAIL_SIZES
+                } if generate_thumbnails else {},
                 "width": media_file.width,
                 "height": media_file.height,
                 "blurhash": media_file.blurhash,

@@ -1,0 +1,56 @@
+{
+  "label": "apple_black_rot",
+  "crop": "Apple",
+  "condition": "Black Rot",
+  "confidence": 1.0,
+  "inference_time_ms": 31.813899986445904,
+  "top_predictions": [
+    {
+      "label": "apple_black_rot",
+      "display_label": "Apple Black Rot",
+      "confidence": 1.0
+    },
+    {
+      "label": "potato_early_blight",
+      "display_label": "Potato Early Blight",
+      "confidence": 8.995695867813195e-18
+    },
+    {
+      "label": "peach_bacterial_spot",
+      "display_label": "Peach Bacterial Spot",
+      "confidence": 2.5174854202139263e-19
+    },
+    {
+      "label": "cherry_healthy",
+      "display_label": "Cherry Healthy",
+      "confidence": 9.969979488768086e-20
+    },
+    {
+      "label": "cherry_powdery_mildew",
+      "display_label": "Cherry Powdery Mildew",
+      "confidence": 5.414549160126805e-20
+    }
+  ],
+  "recommendations": {
+    "summary": [
+      "Likely fungal disease symptoms were detected."
+    ],
+    "treatment": [
+      "Remove infected leaves and destroy them away from the field.",
+      "Apply a crop-appropriate fungicide if disease pressure is increasing."
+    ],
+    "control": [
+      "Improve spacing, pruning, and airflow around plants.",
+      "Water at soil level and avoid wetting foliage."
+    ],
+    "prevention": [
+      "Rotate crops and avoid planting susceptible crops in the same location repeatedly.",
+      "Sanitize stakes, trays, and tools between seasons."
+    ],
+    "caution": [
+      "Use local extension guidance before applying pesticides or removing plants."
+    ]
+  },
+  "image_path": "data\\processed\\plant-disease-v2\\test\\apple_black_rot\\plant_leaf_disease__image_276__3b2c992c3a1f.jpg",
+  "created_at": "2026-07-04T19:07:37.833644+00:00"
+}

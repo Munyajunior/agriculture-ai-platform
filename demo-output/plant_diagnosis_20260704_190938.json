@@ -1,0 +1,56 @@
+{
+  "label": "apple_cedar_apple_rust",
+  "crop": "Apple",
+  "condition": "Cedar Apple Rust",
+  "confidence": 0.9999999403953552,
+  "inference_time_ms": 15.970499982358888,
+  "top_predictions": [
+    {
+      "label": "apple_cedar_apple_rust",
+      "display_label": "Apple Cedar Apple Rust",
+      "confidence": 0.9999999403953552
+    },
+    {
+      "label": "tomato_bacterial_spot",
+      "display_label": "Tomato Bacterial Spot",
+      "confidence": 3.6132188796500486e-08
+    },
+    {
+      "label": "potato_late_blight",
+      "display_label": "Potato Late Blight",
+      "confidence": 1.5085582782958795e-09
+    },
+    {
+      "label": "corn_cercospora_leaf_spot_gray_leaf_spot",
+      "display_label": "Corn Cercospora Leaf Spot Gray Leaf Spot",
+      "confidence": 8.322227906809587e-10
+    },
+    {
+      "label": "tomato_early_blight",
+      "display_label": "Tomato Early Blight",
+      "confidence": 3.8652803180383444e-10
+    }
+  ],
+  "recommendations": {
+    "summary": [
+      "Likely fungal disease symptoms were detected."
+    ],
+    "treatment": [
+      "Remove infected leaves and destroy them away from the field.",
+      "Apply a crop-appropriate fungicide if disease pressure is increasing."
+    ],
+    "control": [
+      "Improve spacing, pruning, and airflow around plants.",
+      "Water at soil level and avoid wetting foliage."
+    ],
+    "prevention": [
+      "Rotate crops and avoid planting susceptible crops in the same location repeatedly.",
+      "Sanitize stakes, trays, and tools between seasons."
+    ],
+    "caution": [
+      "Use local extension guidance before applying pesticides or removing plants."
+    ]
+  },
+  "image_path": "data\\processed\\plant-disease-v2\\test\\apple_cedar_apple_rust\\plant_leaf_disease__image_11__5d9b737d8963.jpg",
+  "created_at": "2026-07-04T19:09:38.570866+00:00"
+}
